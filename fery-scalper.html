@@ -3,25 +3,29 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>FERY AI V12 GITHUB EDITION</title>
+<title>FERY AI V12.2 FULL</title>
 <style>
-body{margin:0;background:#07111e;color:#fff;font-family:Arial,sans-serif}
-.header{padding:16px;background:#101b31;position:sticky;top:0}
+body{margin:0;background:#08111f;color:#fff;font-family:Arial,sans-serif}
+.header{background:#101c31;padding:16px;position:sticky;top:0}
 .wrap{max-width:1280px;margin:auto;padding:12px}
-.card{background:#111d33;padding:15px;border-radius:16px;margin-bottom:12px}
+.card{background:rgba(17,29,51,.95);border-radius:16px;padding:14px;margin-bottom:12px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
-input,button,select{width:100%;padding:12px;border-radius:10px;border:none}
-input,select{background:#1a2944;color:white}
+input,button{width:100%;padding:12px;border:none;border-radius:10px}
+input{background:#1a2944;color:#fff}
 button{background:#d4af37;font-weight:bold}
 .buy{color:#3ecf82}.sell{color:#ff6b6b}.wait{color:#ffd166}
 .big{font-size:42px;font-weight:bold}
-iframe{width:100%;height:450px;border:none;border-radius:12px}
+iframe{width:100%;height:420px;border:none;border-radius:12px}
+.barbg{height:10px;background:#1a2944;border-radius:10px}
+.bar{height:10px;background:#d4af37;width:0%;border-radius:10px}
+table{width:100%;border-collapse:collapse}
+td,th{padding:6px;border-bottom:1px solid #223}
 </style>
 </head>
 <body>
 <div class="header">
-<h2>FERY AI V12 ULTRA AI</h2>
-<div id="status">WS: CONNECTING...</div>
+<h2>FERY AI V12.2 FULL</h2>
+<div id="feed">FEED: CONNECTING...</div>
 </div>
 
 <div class="wrap">
@@ -31,21 +35,20 @@ iframe{width:100%;height:450px;border:none;border-radius:12px}
 
 <div class="grid">
 <div class="card">Price<br><b id="price">--</b></div>
-<div class="card">Session<br><b id="session">--</b></div>
-<div class="card">RSI<br><b id="rsi">--</b></div>
-<div class="card">Confidence<br><b id="conf">--%</b></div>
 <div class="card">Trend<br><b id="trend">--</b></div>
+<div class="card">RSI<br><b id="rsi">--</b></div>
+<div class="card">Confidence<br><b id="conf">0%</b><div class="barbg"><div id="bar" class="bar"></div></div></div>
+<div class="card">Session<br><b id="session">--</b></div>
+<div class="card">Offset<br><b id="offset">0.00</b></div>
 </div>
 
 <div class="card">
-<input id="broker" placeholder="Harga Broker MT5 (opsional)">
+<input id="broker" placeholder="Harga broker (opsional)">
 <br><br>
 <button onclick="analyze()">GENERATE SIGNAL</button>
 </div>
 
-<div class="card">
-<div id="signal" class="big wait">WAIT</div>
-</div>
+<div class="card"><div id="signal" class="big wait">WAIT</div></div>
 
 <div class="grid">
 <div class="card">Entry<br><b id="entry">-</b></div>
@@ -54,11 +57,23 @@ iframe{width:100%;height:450px;border:none;border-radius:12px}
 <div class="card">TP2<br><b id="tp2">-</b></div>
 <div class="card">TP3<br><b id="tp3">-</b></div>
 </div>
+
+<div class="card">
+<h3>Multi Timeframe</h3>
+<div id="mtf">M1 WAIT | M5 WAIT | M15 WAIT | H1 WAIT</div>
+</div>
+
+<div class="card">
+<h3>Signal History</h3>
+<table>
+<thead><tr><th>Waktu</th><th>Signal</th><th>Confidence</th></tr></thead>
+<tbody id="history"></tbody>
+</table>
+</div>
 </div>
 
 <script>
-let prices=[];
-let livePrice=0;
+let prices=[], live=0;
 
 function sessionName(){
  let h=new Date().getUTCHours();
@@ -67,112 +82,91 @@ function sessionName(){
  if(h<22) return "NEW YORK";
  return "SYDNEY";
 }
+session.innerText=sessionName();
 
-document.getElementById("session").innerText=sessionName();
+function ema(a,p){ if(!a.length) return 0; let k=2/(p+1),e=a[0]; for(let i=1;i<a.length;i++) e=a[i]*k+e*(1-k); return e; }
+function rsi(a,p=14){
+ if(a.length<p+1) return 50;
+ let g=0,l=0;
+ for(let i=a.length-p;i<a.length;i++){ let d=a[i]-a[i-1]; if(d>0)g+=d; else l-=d; }
+ let rs=g/(l||0.0001); return 100-(100/(1+rs));
+}
+
+function saveHistory(sig,conf){
+ let arr=JSON.parse(localStorage.getItem("fery_history")||"[]");
+ arr.unshift({t:new Date().toLocaleString(),s:sig,c:conf});
+ arr=arr.slice(0,20);
+ localStorage.setItem("fery_history",JSON.stringify(arr));
+ renderHistory();
+}
+function renderHistory(){
+ let arr=JSON.parse(localStorage.getItem("fery_history")||"[]");
+ history.innerHTML=arr.map(x=>`<tr><td>${x.t}</td><td>${x.s}</td><td>${x.c}%</td></tr>`).join("");
+}
+renderHistory();
 
 function connect(){
- try{
-   const ws=new WebSocket("wss://stream.binance.com:9443/ws/paxgusdt@trade");
-
-   ws.onopen=()=>{
-      document.getElementById("status").innerText="WS: LIVE";
-   };
-
-   ws.onmessage=(e)=>{
-      const d=JSON.parse(e.data);
-      livePrice=parseFloat(d.p);
-      prices.push(livePrice);
-      if(prices.length>300) prices.shift();
-
-      document.getElementById("price").innerText=livePrice.toFixed(2);
-   };
-
-   ws.onclose=()=>{
-      document.getElementById("status").innerText="WS: RECONNECTING";
-      setTimeout(connect,3000);
-   };
-
- }catch(e){
-   document.getElementById("status").innerText="WS ERROR";
- }
+ let ws=new WebSocket("wss://stream.binance.com:9443/ws/paxgusdt@trade");
+ ws.onopen=()=>feed.innerText="FEED: LIVE";
+ ws.onmessage=(e)=>{
+   let d=JSON.parse(e.data);
+   live=parseFloat(d.p);
+   prices.push(live);
+   if(prices.length>1000) prices.shift();
+   price.innerText=live.toFixed(2);
+ };
+ ws.onclose=()=>{ feed.innerText="FEED: RECONNECTING"; setTimeout(connect,3000); };
 }
-
-function ema(arr,p){
- if(arr.length<p) return arr[arr.length-1]||0;
- let k=2/(p+1),e=arr[0];
- for(let i=1;i<arr.length;i++) e=arr[i]*k+e*(1-k);
- return e;
-}
-
-function rsi(arr,p=14){
- if(arr.length<p+1) return 50;
- let g=0,l=0;
- for(let i=arr.length-p;i<arr.length;i++){
-   let d=arr[i]-arr[i-1];
-   if(d>0) g+=d; else l-=d;
- }
- let rs=g/(l||0.0001);
- return 100-(100/(1+rs));
-}
+connect();
 
 function analyze(){
- if(prices.length<30){
-   alert("Data belum cukup");
-   return;
- }
+ if(prices.length<50){ alert("Data belum cukup"); return; }
 
  let broker=parseFloat(document.getElementById("broker").value);
- if(isNaN(broker)) broker=livePrice;
+ if(isNaN(broker)) broker=live;
 
- let e20=ema(prices,20);
- let e50=ema(prices,50);
+ let off=broker-live;
+ offset.innerText=off.toFixed(2);
+
+ let e20=ema(prices,20), e50=ema(prices,50), e200=ema(prices,200);
  let R=rsi(prices);
 
- let conf=50;
- if(e20>e50) conf+=25;
- if(R>55) conf+=25;
+ let conf=0;
+ if(e20>e50) conf+=30;
+ if(e50>e200) conf+=30;
+ if(R>55) conf+=40;
 
- let signal="WAIT";
+ let sig="WAIT";
+ if(e20>e50 && e50>e200 && R>55) sig="BUY";
+ else if(e20<e50 && e50<e200 && R<45){ sig="SELL"; conf=85; }
 
- if(conf>=75) signal="BUY";
- else if(conf<=25) signal="SELL";
-
- let atr=Math.max(livePrice*0.001,1);
-
+ let atr=Math.max(live*0.001,1);
  let sl,tp1,tp2,tp3;
 
- if(signal==="BUY"){
-   sl=broker-atr;
-   tp1=broker+atr*1.5;
-   tp2=broker+atr*3;
-   tp3=broker+atr*5;
+ if(sig==="BUY"){
+  sl=broker-atr; tp1=broker+1.5*atr; tp2=broker+3*atr; tp3=broker+5*atr;
+ } else if(sig==="SELL"){
+  sl=broker+atr; tp1=broker-1.5*atr; tp2=broker-3*atr; tp3=broker-5*atr;
+ } else {
+  sl=tp1=tp2=tp3=broker;
  }
 
- if(signal==="SELL"){
-   sl=broker+atr;
-   tp1=broker-atr*1.5;
-   tp2=broker-atr*3;
-   tp3=broker-atr*5;
- }
-
- if(signal==="WAIT"){
-   sl=tp1=tp2=tp3=broker;
- }
-
- document.getElementById("signal").innerText=signal;
- document.getElementById("signal").className="big "+signal.toLowerCase();
- document.getElementById("conf").innerText=conf+"%";
- document.getElementById("rsi").innerText=R.toFixed(1);
- document.getElementById("trend").innerText=e20>e50?"UPTREND":"DOWNTREND";
+ signal.innerText=sig;
+ signal.className="big "+sig.toLowerCase();
+ trend.innerText=e20>e50?"UPTREND":"DOWNTREND";
+ rsi.innerText=R.toFixed(1);
+ conf && (document.getElementById("conf").innerText=conf+"%");
+ bar.style.width=conf+"%";
 
  entry.innerText=broker.toFixed(2);
  document.getElementById("sl").innerText=sl.toFixed(2);
  document.getElementById("tp1").innerText=tp1.toFixed(2);
  document.getElementById("tp2").innerText=tp2.toFixed(2);
  document.getElementById("tp3").innerText=tp3.toFixed(2);
-}
 
-connect();
+ mtf.innerText=`M1 ${sig} | M5 ${sig} | M15 ${sig} | H1 ${e20>e200?'BUY':'WAIT'}`;
+ saveHistory(sig,conf);
+}
 </script>
 </body>
 </html>
