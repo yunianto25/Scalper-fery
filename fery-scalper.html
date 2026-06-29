@@ -3,27 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>FERY AI V11 PRO MAX</title>
+<title>FERY AI V12 GITHUB EDITION</title>
 <style>
-body{margin:0;background:#08111f;color:#eef;font-family:Arial,sans-serif}
-.header{padding:18px;background:#101c31;position:sticky;top:0}
-.wrap{max-width:1200px;margin:auto;padding:15px}
-.card{background:#111d33;border-radius:16px;padding:16px;margin-bottom:12px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
-input,button{width:100%;padding:12px;border:none;border-radius:10px}
-input{background:#1a2944;color:#fff}
+body{margin:0;background:#07111e;color:#fff;font-family:Arial,sans-serif}
+.header{padding:16px;background:#101b31;position:sticky;top:0}
+.wrap{max-width:1280px;margin:auto;padding:12px}
+.card{background:#111d33;padding:15px;border-radius:16px;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+input,button,select{width:100%;padding:12px;border-radius:10px;border:none}
+input,select{background:#1a2944;color:white}
 button{background:#d4af37;font-weight:bold}
 .buy{color:#3ecf82}.sell{color:#ff6b6b}.wait{color:#ffd166}
-.big{font-size:38px;font-weight:bold}
-iframe{width:100%;height:420px;border:none;border-radius:12px}
-.progress{height:10px;background:#1a2944;border-radius:10px;overflow:hidden}
-.bar{height:100%;width:0%}
+.big{font-size:42px;font-weight:bold}
+iframe{width:100%;height:450px;border:none;border-radius:12px}
 </style>
 </head>
 <body>
 <div class="header">
-<h2>FERY AI V11 PRO MAX</h2>
-<div id="session">Session: Loading...</div>
+<h2>FERY AI V12 ULTRA AI</h2>
+<div id="status">WS: CONNECTING...</div>
 </div>
 
 <div class="wrap">
@@ -32,15 +30,15 @@ iframe{width:100%;height:420px;border:none;border-radius:12px}
 </div>
 
 <div class="grid">
-<div class="card"><b>API</b><div id="api">CONNECTING</div></div>
-<div class="card"><b>Price</b><div id="price">--</div></div>
-<div class="card"><b>RSI</b><div id="rsi">--</div></div>
-<div class="card"><b>ATR</b><div id="atr">--</div></div>
-<div class="card"><b>Confidence</b><div id="conf">0%</div><div class="progress"><div id="bar" class="bar"></div></div></div>
+<div class="card">Price<br><b id="price">--</b></div>
+<div class="card">Session<br><b id="session">--</b></div>
+<div class="card">RSI<br><b id="rsi">--</b></div>
+<div class="card">Confidence<br><b id="conf">--%</b></div>
+<div class="card">Trend<br><b id="trend">--</b></div>
 </div>
 
 <div class="card">
-<input id="broker" placeholder="Harga broker MT5">
+<input id="broker" placeholder="Harga Broker MT5 (opsional)">
 <br><br>
 <button onclick="analyze()">GENERATE SIGNAL</button>
 </div>
@@ -59,70 +57,122 @@ iframe{width:100%;height:420px;border:none;border-radius:12px}
 </div>
 
 <script>
-let closes=[],candles=[];
+let prices=[];
+let livePrice=0;
 
-function ema(arr,p){let k=2/(p+1),e=arr[0];for(let i=1;i<arr.length;i++)e=arr[i]*k+e*(1-k);return e;}
-function rsi(arr,p=14){let g=0,l=0;for(let i=arr.length-p;i<arr.length;i++){let d=arr[i]-arr[i-1];if(d>0)g+=d;else l-=d;}let rs=g/(l||0.0001);return 100-(100/(1+rs));}
-function atr(data,p=14){let t=[];for(let i=1;i<data.length;i++){t.push(Math.max(data[i].h-data[i].l,Math.abs(data[i].h-data[i-1].c),Math.abs(data[i].l-data[i-1].c)));}let r=t.slice(-p);return r.reduce((a,b)=>a+b,0)/r.length;}
+function sessionName(){
+ let h=new Date().getUTCHours();
+ if(h<7) return "TOKYO";
+ if(h<13) return "LONDON";
+ if(h<22) return "NEW YORK";
+ return "SYDNEY";
+}
 
-async function loadData(){
- const urls=[
- 'https://api.bybit.com/v5/market/kline?category=spot&symbol=PAXGUSDT&interval=15&limit=200',
- 'https://api.binance.com/api/v3/klines?symbol=PAXGUSDT&interval=15m&limit=200'
- ];
- for(const u of urls){
-  try{
-   const r=await fetch(u);
-   const j=await r.json();
-   if(u.includes('bybit')){
-      candles=j.result.list.reverse().map(x=>({h:+x[2],l:+x[3],c:+x[4]}));
-   }else{
-      candles=j.map(x=>({h:+x[2],l:+x[3],c:+x[4]}));
-   }
-   closes=candles.map(x=>x.c);
-   document.getElementById('price').innerText=closes.at(-1).toFixed(2);
-   document.getElementById('api').innerText='LIVE';
-   document.getElementById('rsi').innerText=rsi(closes).toFixed(1);
-   document.getElementById('atr').innerText=atr(candles).toFixed(2);
-   return;
-  }catch(e){}
+document.getElementById("session").innerText=sessionName();
+
+function connect(){
+ try{
+   const ws=new WebSocket("wss://stream.binance.com:9443/ws/paxgusdt@trade");
+
+   ws.onopen=()=>{
+      document.getElementById("status").innerText="WS: LIVE";
+   };
+
+   ws.onmessage=(e)=>{
+      const d=JSON.parse(e.data);
+      livePrice=parseFloat(d.p);
+      prices.push(livePrice);
+      if(prices.length>300) prices.shift();
+
+      document.getElementById("price").innerText=livePrice.toFixed(2);
+   };
+
+   ws.onclose=()=>{
+      document.getElementById("status").innerText="WS: RECONNECTING";
+      setTimeout(connect,3000);
+   };
+
+ }catch(e){
+   document.getElementById("status").innerText="WS ERROR";
  }
- document.getElementById('api').innerText='OFFLINE';
+}
+
+function ema(arr,p){
+ if(arr.length<p) return arr[arr.length-1]||0;
+ let k=2/(p+1),e=arr[0];
+ for(let i=1;i<arr.length;i++) e=arr[i]*k+e*(1-k);
+ return e;
+}
+
+function rsi(arr,p=14){
+ if(arr.length<p+1) return 50;
+ let g=0,l=0;
+ for(let i=arr.length-p;i<arr.length;i++){
+   let d=arr[i]-arr[i-1];
+   if(d>0) g+=d; else l-=d;
+ }
+ let rs=g/(l||0.0001);
+ return 100-(100/(1+rs));
 }
 
 function analyze(){
- if(closes.length<50) return;
- const broker=parseFloat(document.getElementById('broker').value||closes.at(-1));
- const e20=ema(closes,20),e50=ema(closes,50),e200=ema(closes,Math.min(200,closes.length-1));
- const R=rsi(closes),A=atr(candles);
- let score=0;
- if(e20>e50)score+=25;
- if(e50>e200)score+=25;
- if(R>55)score+=25;
- if(A>0)score+=25;
- let signal='WAIT';
- if(score>=75) signal='BUY';
- else if(score<=25) signal='SELL';
- document.getElementById('signal').innerText=signal;
- document.getElementById('signal').className='big '+signal.toLowerCase();
- document.getElementById('conf').innerText=score+'%';
- document.getElementById('bar').style.width=score+'%';
+ if(prices.length<30){
+   alert("Data belum cukup");
+   return;
+ }
+
+ let broker=parseFloat(document.getElementById("broker").value);
+ if(isNaN(broker)) broker=livePrice;
+
+ let e20=ema(prices,20);
+ let e50=ema(prices,50);
+ let R=rsi(prices);
+
+ let conf=50;
+ if(e20>e50) conf+=25;
+ if(R>55) conf+=25;
+
+ let signal="WAIT";
+
+ if(conf>=75) signal="BUY";
+ else if(conf<=25) signal="SELL";
+
+ let atr=Math.max(livePrice*0.001,1);
+
  let sl,tp1,tp2,tp3;
- if(signal==='BUY'){sl=broker-A;tp1=broker+A*1.5;tp2=broker+A*3;tp3=broker+A*5;}
- else if(signal==='SELL'){sl=broker+A;tp1=broker-A*1.5;tp2=broker-A*3;tp3=broker-A*5;}
- else{sl=tp1=tp2=tp3=broker;}
- ['entry','sl','tp1','tp2','tp3'].forEach(id=>document.getElementById(id).innerText=eval(id).toFixed(2));
+
+ if(signal==="BUY"){
+   sl=broker-atr;
+   tp1=broker+atr*1.5;
+   tp2=broker+atr*3;
+   tp3=broker+atr*5;
+ }
+
+ if(signal==="SELL"){
+   sl=broker+atr;
+   tp1=broker-atr*1.5;
+   tp2=broker-atr*3;
+   tp3=broker-atr*5;
+ }
+
+ if(signal==="WAIT"){
+   sl=tp1=tp2=tp3=broker;
+ }
+
+ document.getElementById("signal").innerText=signal;
+ document.getElementById("signal").className="big "+signal.toLowerCase();
+ document.getElementById("conf").innerText=conf+"%";
+ document.getElementById("rsi").innerText=R.toFixed(1);
+ document.getElementById("trend").innerText=e20>e50?"UPTREND":"DOWNTREND";
+
+ entry.innerText=broker.toFixed(2);
+ document.getElementById("sl").innerText=sl.toFixed(2);
+ document.getElementById("tp1").innerText=tp1.toFixed(2);
+ document.getElementById("tp2").innerText=tp2.toFixed(2);
+ document.getElementById("tp3").innerText=tp3.toFixed(2);
 }
 
-function updateSession(){
- let h=new Date().getUTCHours();
- let s='Sydney';
- if(h>=0&&h<8)s='Tokyo';
- if(h>=7&&h<16)s='London';
- if(h>=13&&h<22)s='New York';
- document.getElementById('session').innerText='Session: '+s;
-}
-updateSession(); loadData(); setInterval(loadData,60000);
+connect();
 </script>
 </body>
 </html>
