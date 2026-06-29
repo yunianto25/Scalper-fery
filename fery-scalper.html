@@ -96,6 +96,52 @@ body {
   font-size: 11px; font-weight: 600; color: var(--text);
 }
 
+/* CHART SECTION */
+.chart-wrap {
+  margin: 14px 16px 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--card);
+}
+.chart-hd {
+  padding: 10px 15px;
+  border-bottom: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center;
+  background: var(--bg2);
+}
+.chart-lbl {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; letter-spacing: 2.5px; color: var(--text2);
+}
+.chart-tf-btns {
+  display: flex; gap: 4px;
+}
+.tf-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; font-weight: 700; letter-spacing: 1px;
+  padding: 4px 9px; border-radius: 5px;
+  border: 1px solid var(--border);
+  background: transparent; color: var(--text2);
+  cursor: pointer; transition: all 0.15s;
+}
+.tf-btn.on {
+  background: var(--gold-glow);
+  border-color: var(--gold-lo);
+  color: var(--gold-hi);
+}
+.chart-container {
+  width: 100%;
+  height: 340px;
+  position: relative;
+}
+.chart-container iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+
 /* SECTION WRAPPER */
 .wrap { padding: 14px 16px 0; }
 
@@ -432,6 +478,27 @@ body {
   </div>
 </div>
 
+<!-- GRAFIK HARGA -->
+<div class="chart-wrap">
+  <div class="chart-hd">
+    <div class="chart-lbl">GRAFIK HARGA · XAU/USD LIVE</div>
+    <div class="chart-tf-btns">
+      <button class="tf-btn on" id="tf1" onclick="setTF('1')">M1</button>
+      <button class="tf-btn"    id="tf5" onclick="setTF('5')">M5</button>
+      <button class="tf-btn"    id="tf15" onclick="setTF('15')">M15</button>
+      <button class="tf-btn"    id="tf60" onclick="setTF('60')">H1</button>
+    </div>
+  </div>
+  <div class="chart-container">
+    <iframe id="tvChart"
+      src="https://s.tradingview.com/widgetembed/?frameElementId=tvChart&symbol=OANDA%3AXAUUSD&interval=1&hidesidetoolbar=1&hidetoptoolbar=0&symboledit=0&saveimage=0&toolbarbg=0b1628&studies=%5B%5D&theme=dark&style=1&timezone=Asia%2FJakarta&withdateranges=0&showpopupbutton=0&studies_overrides=%7B%7D&overrides=%7B%22mainSeriesProperties.candleStyle.upColor%22%3A%22%233ecf82%22%2C%22mainSeriesProperties.candleStyle.downColor%22%3A%22%23e85555%22%2C%22mainSeriesProperties.candleStyle.borderUpColor%22%3A%22%233ecf82%22%2C%22mainSeriesProperties.candleStyle.borderDownColor%22%3A%22%23e85555%22%2C%22mainSeriesProperties.candleStyle.wickUpColor%22%3A%22%233ecf82%22%2C%22mainSeriesProperties.candleStyle.wickDownColor%22%3A%22%23e85555%22%7D&enabled_features=%5B%5D&disabled_features=%5B%22use_localstorage_for_settings%22%5D&locale=id&utm_source=fery-algo&utm_medium=widget&utm_campaign=chart"
+      allowtransparency="true"
+      scrolling="no"
+      allowfullscreen>
+    </iframe>
+  </div>
+</div>
+
 <!-- MODE TOGGLE -->
 <div class="mode-toggle">
   <button class="mbtn on" id="btnC" onclick="setMode('c')">⚡ CONFLUENCE</button>
@@ -516,12 +583,10 @@ body {
         <div class="card-sub" id="sigTime">--:--:--</div>
       </div>
       <div class="card-bd">
-        <!-- PLACEHOLDER -->
         <div class="ph" id="cPh">
           <div class="ph-ico">📊</div>
           <div class="ph-txt">Masukkan harga entry dari TV<br/>Signal dihitung dari data Binance real<br/>Entry/SL/TP pakai harga broker lo</div>
         </div>
-        <!-- CONTENT -->
         <div id="cResult" style="display:none">
           <div class="sig-main">
             <div class="sig-text" id="sigTxt">--</div>
@@ -613,10 +678,51 @@ let mode = 'c';
 let lastCalc = null;
 let staleTimer = null;
 let binancePrice = null;
+let currentTF = '1';
 
-// Bybit candle data (real)
 let candles = { m5: [], m15: [], h1: [] };
 let indicators = null;
+
+// ============================================================
+// CHART TF SWITCHER
+// ============================================================
+function setTF(tf) {
+  currentTF = tf;
+  ['1','5','15','60'].forEach(t => {
+    document.getElementById('tf' + t).classList.remove('on');
+  });
+  document.getElementById('tf' + tf).classList.add('on');
+
+  const encoded = encodeURIComponent('OANDA:XAUUSD');
+  const overrides = encodeURIComponent(JSON.stringify({
+    "mainSeriesProperties.candleStyle.upColor":       "#3ecf82",
+    "mainSeriesProperties.candleStyle.downColor":     "#e85555",
+    "mainSeriesProperties.candleStyle.borderUpColor": "#3ecf82",
+    "mainSeriesProperties.candleStyle.borderDownColor":"#e85555",
+    "mainSeriesProperties.candleStyle.wickUpColor":   "#3ecf82",
+    "mainSeriesProperties.candleStyle.wickDownColor": "#e85555"
+  }));
+
+  const src = `https://s.tradingview.com/widgetembed/?frameElementId=tvChart`
+    + `&symbol=${encoded}`
+    + `&interval=${tf}`
+    + `&hidesidetoolbar=1`
+    + `&hidetoptoolbar=0`
+    + `&symboledit=0`
+    + `&saveimage=0`
+    + `&toolbarbg=0b1628`
+    + `&theme=dark`
+    + `&style=1`
+    + `&timezone=Asia%2FJakarta`
+    + `&withdateranges=0`
+    + `&showpopupbutton=0`
+    + `&overrides=${overrides}`
+    + `&enabled_features=%5B%5D`
+    + `&disabled_features=%5B%22use_localstorage_for_settings%22%5D`
+    + `&locale=id`;
+
+  document.getElementById('tvChart').src = src;
+}
 
 // ============================================================
 // CLOCK & SESSION
@@ -694,12 +800,11 @@ async function loadBinanceData() {
   }
 }
 
-// Refresh every 60 seconds
 loadBinanceData();
 setInterval(loadBinanceData, 60000);
 
 // ============================================================
-// INDICATORS (real calculation)
+// INDICATORS
 // ============================================================
 function ema(closes, period) {
   const k = 2 / (period + 1);
@@ -750,32 +855,26 @@ function computeIndicators() {
   const tH1  = trend(closesH1);
   const tM15 = trend(closesM15);
   const tM5  = trend(closesM5);
-
-  const rsiM5  = rsi(closesM5);
+  const rsiM5 = rsi(closesM5);
 
   const atrM5  = atr(candles.m5);
   const atrM15 = atr(candles.m15);
   const atrH1  = atr(candles.h1);
 
-  // EMA stack aligned?
   const emaAligned = (tH1 === tM15 && tM15 === tM5 && tH1 !== 'NEUTRAL');
 
-  // Confluence count
   let bull = 0, bear = 0;
   [tH1, tM15, tM5].forEach(t => { if (t === 'BULL') bull++; else if (t === 'BEAR') bear++; });
 
   const direction = bull > bear ? 'BUY' : bear > bull ? 'SELL' : 'WAIT';
 
-  // Confidence
   let conf = 30;
   if (emaAligned) conf += 30;
   else if (bull === 2 || bear === 2) conf += 15;
   if (rsiM5 > 50 && direction === 'BUY')  conf += 10;
   if (rsiM5 < 50 && direction === 'SELL') conf += 10;
-  // RSI extreme warning
   const rsiExtreme = rsiM5 > 75 || rsiM5 < 25;
   if (rsiExtreme) conf -= 10;
-  // Session
   const h = wibNow().getHours();
   const activeSess = (h >= 14 && h < 22) || (h >= 20 || h < 4);
   if (activeSess) conf += 15;
@@ -821,8 +920,7 @@ function runCalc() {
   const raw    = document.getElementById('entryInput').value;
   const offset = parseFloat(document.getElementById('offsetInput').value) || 0;
   const entry  = parseFloat(raw);
-
-  const inp = document.getElementById('entryInput');
+  const inp    = document.getElementById('entryInput');
 
   if (!raw || isNaN(entry) || entry < 1000 || entry > 9999) {
     inp.classList.add('err');
@@ -848,13 +946,11 @@ function runCalc() {
   document.getElementById('entryTimestamp').textContent = ts;
   setHint(`✓ Entry broker: ${brokerPrice.toFixed(2)} (offset ${offset >= 0 ? '+' : ''}${offset})`, 'ok');
 
-  // Show ATR
   document.getElementById('atrWrap').style.display = 'block';
   document.getElementById('aM5').textContent  = indicators.atrM5;
   document.getElementById('aM15').textContent = indicators.atrM15;
   document.getElementById('aH1').textContent  = indicators.atrH1;
 
-  // Show MTF
   document.getElementById('mtfWrap').style.display = 'block';
   setMTF('mH1',  indicators.tH1);
   setMTF('mM15', indicators.tM15);
@@ -882,7 +978,7 @@ function setMTF(id, sig) {
 function renderConfluence(price, ts) {
   const ind = indicators;
   const dir = ind.direction;
-  const atr = parseFloat(ind.atrM15);
+  const atrVal = parseFloat(ind.atrM15);
 
   document.getElementById('cPh').style.display = 'none';
   document.getElementById('cResult').style.display = 'block';
@@ -895,28 +991,26 @@ function renderConfluence(price, ts) {
   document.getElementById('confNum').textContent = ind.conf + '%';
   document.getElementById('confBar').style.width = ind.conf + '%';
 
-  // Levels from broker price
   let sl, tp1, tp2;
   if (dir === 'BUY') {
-    sl  = price - atr;
-    tp1 = price + atr * 1.5;
-    tp2 = price + atr * 3;
+    sl  = price - atrVal;
+    tp1 = price + atrVal * 1.5;
+    tp2 = price + atrVal * 3;
   } else {
-    sl  = price + atr;
-    tp1 = price - atr * 1.5;
-    tp2 = price - atr * 3;
+    sl  = price + atrVal;
+    tp1 = price - atrVal * 1.5;
+    tp2 = price - atrVal * 3;
   }
 
   document.getElementById('lEnt').textContent  = price.toFixed(2);
   document.getElementById('lSL').textContent   = sl.toFixed(2);
   document.getElementById('lTP1').textContent  = tp1.toFixed(2);
   document.getElementById('lTP2').textContent  = tp2.toFixed(2);
-  document.getElementById('lSLpts').textContent  = ` (${atr.toFixed(2)} pts)`;
-  document.getElementById('lTP1pts').textContent = ` (${(atr * 1.5).toFixed(2)} pts)`;
-  document.getElementById('lTP2pts').textContent = ` (${(atr * 3).toFixed(2)} pts)`;
+  document.getElementById('lSLpts').textContent  = ` (${atrVal.toFixed(2)} pts)`;
+  document.getElementById('lTP1pts').textContent = ` (${(atrVal * 1.5).toFixed(2)} pts)`;
+  document.getElementById('lTP2pts').textContent = ` (${(atrVal * 3).toFixed(2)} pts)`;
   document.getElementById('rrV').textContent = '1 : 1.50';
 
-  // Factors
   setF('fH1',  ind.tH1  === 'BULL' ? '↑ BULL' : ind.tH1  === 'BEAR' ? '↓ BEAR' : '— NEUTRAL',
                ind.tH1  === 'BULL' ? 'bull' : ind.tH1  === 'BEAR' ? 'bear' : 'neu');
   setF('fM15', ind.tM15 === 'BULL' ? '↑ BULL' : ind.tM15 === 'BEAR' ? '↓ BEAR' : '— NEUTRAL',
@@ -947,9 +1041,8 @@ function renderScalping(price) {
   const atrM5  = parseFloat(ind.atrM5);
   const atrM15 = parseFloat(ind.atrM15);
 
-  // M1 → pakai M5 trend sebagai proxy
-  const m1dir = ind.tM5;
-  const m5dir = ind.tM5;
+  const m1dir  = ind.tM5;
+  const m5dir  = ind.tM5;
   const m15dir = ind.tM15;
   const h1dir  = ind.tH1;
 
@@ -957,16 +1050,11 @@ function renderScalping(price) {
   setScalp('sM5',  m5dir,  (atrM5 * 1.0).toFixed(1),  (atrM5 * 0.7).toFixed(1));
   setScalp('sM15', m15dir, (atrM15 * 0.8).toFixed(1), (atrM15 * 0.5).toFixed(1));
 
-  // H1 — just bias
   const h1el = document.getElementById('sH1');
   h1el.textContent = h1dir;
   h1el.className = 'scalp-sig ' + (h1dir === 'BULL' ? 'buy' : h1dir === 'BEAR' ? 'sell' : 'wait');
   document.getElementById('sH1bias').textContent = h1dir;
-  document.getElementById('sM1sl').textContent = '--';
-  document.getElementById('sM5sl').textContent = '--';
-  document.getElementById('sM15sl').textContent = '--';
 
-  // Fix SL values
   document.getElementById('sM1sl').textContent  = (atrM5 * 0.3).toFixed(1);
   document.getElementById('sM5sl').textContent  = (atrM5 * 0.7).toFixed(1);
   document.getElementById('sM15sl').textContent = (atrM15 * 0.5).toFixed(1);
