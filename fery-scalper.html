@@ -448,6 +448,68 @@ body {
 ::-webkit-scrollbar { width: 3px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* AUTO OFFSET */
+.offset-display {
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+.offset-row-auto {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+}
+.offset-lbl-auto {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px; color: var(--text2); letter-spacing: 1.5px;
+}
+.offset-val-binance {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; font-weight: 700; color: var(--text);
+}
+.offset-val-broker {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; font-weight: 700; color: var(--gold-hi);
+}
+.offset-sep {
+  font-size: 10px; color: var(--text3);
+}
+.offset-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; font-weight: 700;
+  padding: 2px 8px; border-radius: 4px;
+  background: var(--gold-glow);
+  border: 1px solid var(--gold-lo);
+  color: var(--gold-hi);
+  margin-left: auto;
+}
+.offset-badge.neg {
+  background: var(--red-dim);
+  border-color: var(--red-bd);
+  color: var(--red);
+}
+.offset-saved-msg {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; color: var(--green);
+  margin-top: 5px;
+}
+.offset-toggle {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; color: var(--text3);
+  cursor: pointer; margin-bottom: 2px;
+  padding: 4px 0;
+}
+.offset-toggle:active { color: var(--text2); }
+.offset-clear-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; font-weight: 700;
+  padding: 6px 10px; border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent; color: var(--text2);
+  cursor: pointer;
+}
+.offset-clear-btn:active { border-color: var(--red); color: var(--red); }
 </style>
 </head>
 <body>
@@ -505,11 +567,11 @@ body {
   <button class="mbtn"    id="btnS" onclick="setMode('s')">🔫 SCALPING</button>
 </div>
 
-<!-- MANUAL ENTRY INPUT -->
+<!-- BROKER PRICE INPUT -->
 <div class="wrap">
   <div class="card">
     <div class="card-hd">
-      <div class="card-lbl">HARGA ENTRY (dari TradingView)</div>
+      <div class="card-lbl">HARGA BROKER (dari MT4/MT5)</div>
       <div class="card-sub" id="entryTimestamp">--</div>
     </div>
     <div class="card-bd">
@@ -517,15 +579,37 @@ body {
         <div class="pair-tag">XAU/USD</div>
         <input type="number" class="num-input" id="entryInput"
           placeholder="misal 3285.50" step="0.01" min="1000" max="9999"/>
-        <button class="go-btn" onclick="runCalc()">HITUNG</button>
+        <button class="go-btn" onclick="runCalc()">SIGNAL</button>
       </div>
-      <div class="offset-row">
-        <div class="offset-lbl">OFFSET BROKER</div>
-        <input type="number" class="offset-input" id="offsetInput"
-          placeholder="0.00" step="0.01" value="0"/>
-        <div class="offset-hint">&nbsp;pts (+ / −)</div>
+
+      <!-- OFFSET DISPLAY (auto-calculated) -->
+      <div class="offset-display" id="offsetDisplay" style="display:none">
+        <div class="offset-row-auto">
+          <div class="offset-lbl-auto">BINANCE</div>
+          <div class="offset-val-binance" id="offsetBinanceVal">--</div>
+          <div class="offset-sep">→</div>
+          <div class="offset-lbl-auto">BROKER</div>
+          <div class="offset-val-broker" id="offsetBrokerVal">--</div>
+          <div class="offset-badge" id="offsetBadge">+0.00</div>
+        </div>
+        <div class="offset-saved-msg" id="offsetSavedMsg"></div>
       </div>
-      <div class="hint" id="hint">↑ Ketik harga dari chart TV → HITUNG</div>
+
+      <!-- MANUAL OVERRIDE (collapsed by default) -->
+      <div class="offset-toggle" onclick="toggleOffsetManual()">
+        <span id="offsetToggleLbl">⚙️ Override offset manual</span>
+      </div>
+      <div id="offsetManualWrap" style="display:none; margin-top:8px;">
+        <div class="offset-row">
+          <div class="offset-lbl">OFFSET MANUAL</div>
+          <input type="number" class="offset-input" id="offsetInput"
+            placeholder="0.00" step="0.01" value="0"/>
+          <div class="offset-hint">&nbsp;pts</div>
+          <button class="offset-clear-btn" onclick="clearOffset()">RESET</button>
+        </div>
+      </div>
+
+      <div class="hint" id="hint">↑ Ketik harga dari broker (MT4/MT5) → SIGNAL</div>
       <div class="stale" id="stale">⚠️ Harga belum diupdate — <span id="staleMin">0</span> menit lalu</div>
     </div>
   </div>
@@ -678,10 +762,50 @@ let mode = 'c';
 let lastCalc = null;
 let staleTimer = null;
 let binancePrice = null;
+let savedOffset = parseFloat(localStorage.getItem('fery_offset') || '0');
 let currentTF = '1';
 
 let candles = { m5: [], m15: [], h1: [] };
 let indicators = null;
+
+// ============================================================
+// OFFSET UTILS
+// ============================================================
+function toggleOffsetManual() {
+  const wrap = document.getElementById('offsetManualWrap');
+  const lbl  = document.getElementById('offsetToggleLbl');
+  const open = wrap.style.display === 'none';
+  wrap.style.display = open ? 'block' : 'none';
+  lbl.textContent = open ? '⚙️ Tutup override manual' : '⚙️ Override offset manual';
+  if (open) {
+    document.getElementById('offsetInput').value = savedOffset.toFixed(2);
+  }
+}
+
+function clearOffset() {
+  savedOffset = 0;
+  localStorage.removeItem('fery_offset');
+  document.getElementById('offsetInput').value = '0';
+  document.getElementById('offsetDisplay').style.display = 'none';
+  setHint('Offset direset ke 0', 'warn');
+}
+
+function updateOffsetDisplay(brokerPrice, binPrice) {
+  const diff = brokerPrice - binPrice;
+  savedOffset = diff;
+  localStorage.setItem('fery_offset', diff.toFixed(4));
+
+  document.getElementById('offsetDisplay').style.display = 'block';
+  document.getElementById('offsetBinanceVal').textContent = binPrice.toFixed(2);
+  document.getElementById('offsetBrokerVal').textContent  = brokerPrice.toFixed(2);
+
+  const badge = document.getElementById('offsetBadge');
+  badge.textContent = (diff >= 0 ? '+' : '') + diff.toFixed(2) + ' pts';
+  badge.className = 'offset-badge' + (diff < 0 ? ' neg' : '');
+
+  document.getElementById('offsetSavedMsg').textContent =
+    `✓ Offset tersimpan · dipakai otomatis berikutnya`;
+}
 
 // ============================================================
 // CHART TF SWITCHER
@@ -781,22 +905,61 @@ async function fetchPrice() {
   return parseFloat(d.price);
 }
 
+let binanceRetryCount = 0;
+const MAX_RETRY = 5;
+
 async function loadBinanceData() {
-  try {
-    [candles.m5, candles.m15, candles.h1, binancePrice] = await Promise.all([
-      fetchCandles('5m', 100),
-      fetchCandles('15m', 100),
-      fetchCandles('1h', 100),
-      fetchPrice()
-    ]);
-    indicators = computeIndicators();
-    document.getElementById('binDot').className = 'bin-dot ok';
-    document.getElementById('binStatus').textContent = 'Binance · Live';
-    document.getElementById('binPrice').textContent = binancePrice.toFixed(2);
-  } catch(e) {
-    document.getElementById('binDot').className = 'bin-dot err';
-    document.getElementById('binStatus').textContent = 'Binance · Error';
-    console.error(e);
+  document.getElementById('binDot').className = 'bin-dot';
+  document.getElementById('binStatus').textContent = 'Menghubungkan Binance...';
+
+  // Try Binance first, fallback to alternate endpoint
+  const endpoints = [
+    'https://api.binance.com',
+    'https://api1.binance.com',
+    'https://api2.binance.com',
+    'https://api3.binance.com'
+  ];
+
+  for (let i = 0; i < endpoints.length; i++) {
+    try {
+      const base = endpoints[i];
+      const [m5, m15, h1, price] = await Promise.all([
+        fetch(`${base}/api/v3/klines?symbol=${SYMBOL}&interval=5m&limit=100`).then(r => r.json()),
+        fetch(`${base}/api/v3/klines?symbol=${SYMBOL}&interval=15m&limit=100`).then(r => r.json()),
+        fetch(`${base}/api/v3/klines?symbol=${SYMBOL}&interval=1h&limit=100`).then(r => r.json()),
+        fetch(`${base}/api/v3/ticker/price?symbol=${SYMBOL}`).then(r => r.json())
+      ]);
+
+      const parse = arr => arr.map(c => ({
+        o: parseFloat(c[1]), h: parseFloat(c[2]),
+        l: parseFloat(c[3]), c: parseFloat(c[4]), v: parseFloat(c[5])
+      }));
+
+      candles.m5  = parse(m5);
+      candles.m15 = parse(m15);
+      candles.h1  = parse(h1);
+      binancePrice = parseFloat(price.price);
+
+      indicators = computeIndicators();
+      binanceRetryCount = 0;
+
+      document.getElementById('binDot').className = 'bin-dot ok';
+      document.getElementById('binStatus').textContent = `Binance · Live (${endpoints[i].replace('https://','')})`;
+      document.getElementById('binPrice').textContent = binancePrice.toFixed(2);
+      return; // success, stop trying
+    } catch(e) {
+      console.warn(`Binance endpoint ${endpoints[i]} failed:`, e.message);
+    }
+  }
+
+  // All endpoints failed
+  binanceRetryCount++;
+  document.getElementById('binDot').className = 'bin-dot err';
+  document.getElementById('binStatus').textContent = `Binance Error · Retry ${binanceRetryCount}/${MAX_RETRY}`;
+  if (binanceRetryCount < MAX_RETRY) {
+    setTimeout(loadBinanceData, 5000); // retry in 5s
+  } else {
+    document.getElementById('binStatus').textContent = 'Binance Gagal · Coba matikan VPN';
   }
 }
 
@@ -917,25 +1080,43 @@ function setMode(m) {
 // MAIN CALCULATE
 // ============================================================
 function runCalc() {
-  const raw    = document.getElementById('entryInput').value;
-  const offset = parseFloat(document.getElementById('offsetInput').value) || 0;
-  const entry  = parseFloat(raw);
-  const inp    = document.getElementById('entryInput');
+  const raw        = document.getElementById('entryInput').value;
+  const brokerPrice = parseFloat(raw);
+  const inp        = document.getElementById('entryInput');
 
-  if (!raw || isNaN(entry) || entry < 1000 || entry > 9999) {
+  if (!raw || isNaN(brokerPrice) || brokerPrice < 1000 || brokerPrice > 9999) {
     inp.classList.add('err');
-    setHint('⚠️ Harga tidak valid', 'err');
+    setHint('⚠️ Harga tidak valid (contoh: 3285.50)', 'err');
     return;
   }
 
-  if (!indicators) {
-    setHint('⏳ Menunggu data Binance...', 'warn');
-    loadBinanceData().then(() => runCalc());
+  if (!indicators || !binancePrice) {
+    setHint('⏳ Menunggu data Binance... (nyalain VPN)', 'warn');
+    loadBinanceData().then(() => {
+      if (indicators) runCalc();
+      else setHint('❌ Binance gagal — coba refresh', 'err');
+    });
     return;
   }
 
   inp.classList.remove('err');
-  const brokerPrice = entry + offset;
+
+  // Check manual override
+  const manualOpen = document.getElementById('offsetManualWrap').style.display !== 'none';
+  let offset;
+  if (manualOpen) {
+    offset = parseFloat(document.getElementById('offsetInput').value) || 0;
+    savedOffset = offset;
+    localStorage.setItem('fery_offset', offset.toFixed(4));
+  } else {
+    // Auto-calculate offset from broker price vs binance
+    updateOffsetDisplay(brokerPrice, binancePrice);
+    offset = savedOffset;
+  }
+
+  // Broker price IS the entry — offset already baked in
+  // We use broker price directly for levels
+  // Binance data used only for indicators (trend/RSI/ATR)
   lastCalc = new Date();
   startStale();
 
@@ -944,13 +1125,15 @@ function runCalc() {
   const ts  = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
 
   document.getElementById('entryTimestamp').textContent = ts;
-  setHint(`✓ Entry broker: ${brokerPrice.toFixed(2)} (offset ${offset >= 0 ? '+' : ''}${offset})`, 'ok');
+  setHint(`✓ Entry: ${brokerPrice.toFixed(2)} · Offset: ${offset >= 0 ? '+' : ''}${offset.toFixed(2)} pts`, 'ok');
 
+  // ATR
   document.getElementById('atrWrap').style.display = 'block';
   document.getElementById('aM5').textContent  = indicators.atrM5;
   document.getElementById('aM15').textContent = indicators.atrM15;
   document.getElementById('aH1').textContent  = indicators.atrH1;
 
+  // MTF
   document.getElementById('mtfWrap').style.display = 'block';
   setMTF('mH1',  indicators.tH1);
   setMTF('mM15', indicators.tM15);
@@ -1090,6 +1273,23 @@ document.getElementById('entryInput').addEventListener('keydown', e => {
 });
 document.getElementById('offsetInput').addEventListener('keydown', e => {
   if (e.key === 'Enter') runCalc();
+});
+
+// Restore saved offset info on load
+window.addEventListener('load', () => {
+  const saved = localStorage.getItem('fery_offset');
+  if (saved && parseFloat(saved) !== 0) {
+    document.getElementById('offsetInput').value = parseFloat(saved).toFixed(2);
+    const badge = document.getElementById('offsetBadge');
+    const diff  = parseFloat(saved);
+    document.getElementById('offsetDisplay').style.display = 'block';
+    document.getElementById('offsetBinanceVal').textContent = '--';
+    document.getElementById('offsetBrokerVal').textContent  = '--';
+    badge.textContent = (diff >= 0 ? '+' : '') + diff.toFixed(2) + ' pts';
+    badge.className = 'offset-badge' + (diff < 0 ? ' neg' : '');
+    document.getElementById('offsetSavedMsg').textContent =
+      `✓ Offset tersimpan dari sesi sebelumnya`;
+  }
 });
 </script>
 </body>
