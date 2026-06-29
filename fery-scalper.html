@@ -533,10 +533,10 @@ body {
 <div class="statusbar">
   <div class="binance-status">
     <div class="bin-dot" id="binDot"></div>
-    <span id="binStatus">Menghubungkan Binance...</span>
+    <span id="binStatus">Menghubungkan Bybit...</span>
   </div>
   <div class="bin-price">
-    Binance: <span id="binPrice">--</span>
+    Bybit: <span id="binPrice">--</span>
   </div>
 </div>
 
@@ -882,15 +882,18 @@ setInterval(updateClock, 1000);
 updateClock();
 
 // ============================================================
-// BINANCE API
+// BYBIT API (ganti Binance)
 // ============================================================
 const SYMBOL = 'XAUUSDT';
 
-async function fetchCandles(interval, limit = 100) {
-  const url = `https://api.binance.com/api/v3/klines?symbol=${SYMBOL}&interval=${interval}&limit=${limit}`;
-  const res = await fetch(url);
-  const data = await res.json();
-  return data.map(c => ({
+async function fetchCandlesBybit(interval, limit = 100) {
+  // Bybit interval: 1=1m, 3=3m, 5=5m, 15=15m, 60=1h
+  const url = `https://api.bybit.com/v5/market/kline?category=spot&symbol=${SYMBOL}&interval=${interval}&limit=${limit}`;
+  const res  = await fetch(url);
+  const json = await res.json();
+  if (json.retCode !== 0) throw new Error(json.retMsg);
+  // Bybit returns newest first → reverse
+  return json.result.list.reverse().map(c => ({
     o: parseFloat(c[1]),
     h: parseFloat(c[2]),
     l: parseFloat(c[3]),
@@ -899,10 +902,11 @@ async function fetchCandles(interval, limit = 100) {
   }));
 }
 
-async function fetchPrice() {
-  const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${SYMBOL}`);
-  const d = await res.json();
-  return parseFloat(d.price);
+async function fetchPriceBybit() {
+  const res  = await fetch(`https://api.bybit.com/v5/market/tickers?category=spot&symbol=${SYMBOL}`);
+  const json = await res.json();
+  if (json.retCode !== 0) throw new Error(json.retMsg);
+  return parseFloat(json.result.list[0].lastPrice);
 }
 
 let binanceRetryCount = 0;
@@ -910,58 +914,37 @@ const MAX_RETRY = 5;
 
 async function loadBinanceData() {
   document.getElementById('binDot').className = 'bin-dot';
-  document.getElementById('binStatus').textContent = 'Menghubungkan Binance...';
-
-  // Try Binance first, fallback to alternate endpoint
-  const endpoints = [
-    'https://api.binance.com',
-    'https://api1.binance.com',
-    'https://api2.binance.com',
-    'https://api3.binance.com'
-  ];
-
-  for (let i = 0; i < endpoints.length; i++) {
-    try {
-      const base = endpoints[i];
-      const [m5, m15, h1, price] = await Promise.all([
-        fetch(`${base}/api/v3/klines?symbol=${SYMBOL}&interval=5m&limit=100`).then(r => r.json()),
-        fetch(`${base}/api/v3/klines?symbol=${SYMBOL}&interval=15m&limit=100`).then(r => r.json()),
-        fetch(`${base}/api/v3/klines?symbol=${SYMBOL}&interval=1h&limit=100`).then(r => r.json()),
-        fetch(`${base}/api/v3/ticker/price?symbol=${SYMBOL}`).then(r => r.json())
-      ]);
-
-      const parse = arr => arr.map(c => ({
-        o: parseFloat(c[1]), h: parseFloat(c[2]),
-        l: parseFloat(c[3]), c: parseFloat(c[4]), v: parseFloat(c[5])
-      }));
-
-      candles.m5  = parse(m5);
-      candles.m15 = parse(m15);
-      candles.h1  = parse(h1);
-      binancePrice = parseFloat(price.price);
-
-      indicators = computeIndicators();
-      binanceRetryCount = 0;
-
-      document.getElementById('binDot').className = 'bin-dot ok';
-      document.getElementById('binStatus').textContent = `Binance · Live (${endpoints[i].replace('https://','')})`;
-      document.getElementById('binPrice').textContent = binancePrice.toFixed(2);
-      return; // success, stop trying
-    } catch(e) {
-      console.warn(`Binance endpoint ${endpoints[i]} failed:`, e.message);
-    }
-  }
-
-  // All endpoints failed
-  binanceRetryCount++;
-  document.getElementById('binDot').className = 'bin-dot err';
-  document.getElementById('binStatus').textContent = `Binance Error · Retry ${binanceRetryCount}/${MAX_RETRY}`;
-  if (binanceRetryCount < MAX_RETRY) {
-    setTimeout(loadBinanceData, 5000); // retry in 5s
-  } else {
-    document.getElementById('binStatus').textContent = 'Binance Gagal · Coba matikan VPN';
+  document.getElementById('binStatus').textContent = 'Menghubungkan Bybit...';
+  try {
+    const [m5, m15, h1, price] = await Promise.all([
+      fetchCandlesBybit('5',  100),
+      fetchCandlesBybit('15', 100),
+      fetchCandlesBybit('60', 100),
+      fetchPriceBybit()
+    ]);
+    candles.m5  = m5;
+    candles.m15 = m15;
+    candles.h1  = h1;
+    binancePrice = price;
+    indicators   = computeIndicators();
+    binanceRetryCount = 0;
+    document.getElementById('binDot').className     = 'bin-dot ok';
+    document.getElementById('binStatus').textContent = 'Bybit · Live';
+    document.getElementById('binPrice').textContent  = binancePrice.toFixed(2);
+  } catch(e) {
+    binanceRetryCount++;
+    document.getElementById('binDot').className     = 'bin-dot err';
+    document.getElementById('binStatus').textContent =
+      binanceRetryCount < MAX_RETRY
+        ? `Bybit Error · Retry ${binanceRetryCount}/${MAX_RETRY}...`
+        : 'Bybit Gagal · Coba refresh';
+    console.error('Bybit error:', e);
+    if (binanceRetryCount < MAX_RETRY) setTimeout(loadBinanceData, 5000);
   }
 }
+
+loadBinanceData();
+setInterval(loadBinanceData, 60000);
 
 loadBinanceData();
 setInterval(loadBinanceData, 60000);
