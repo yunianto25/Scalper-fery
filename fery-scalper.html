@@ -3,213 +3,142 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>FERY AI V13 — Candle Engine</title>
+<title>FERY AI V14 — Live + Backtest</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;600;700&display=swap');
-
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#07101e;
-  --card:#0d1b2e;
-  --border:#1a2f4a;
-  --gold:#d4af37;
-  --gold2:#f0cc55;
-  --green:#2ecc71;
-  --red:#e74c3c;
-  --yellow:#f39c12;
-  --text:#c8d8e8;
-  --dim:#4a6580;
+  --bg:#07101e;--card:#0d1b2e;--border:#1a2f4a;
+  --gold:#d4af37;--gold2:#f0cc55;--green:#2ecc71;--red:#e74c3c;
+  --yellow:#f39c12;--text:#c8d8e8;--dim:#4a6580;
 }
 body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh}
-
-/* HEADER */
-.header{
-  background:linear-gradient(90deg,#07101e,#0d1b2e,#07101e);
-  border-bottom:1px solid var(--border);
-  padding:12px 20px;
-  display:flex;align-items:center;justify-content:space-between;
-  position:sticky;top:0;z-index:100;
-}
+.header{background:linear-gradient(90deg,#07101e,#0d1b2e,#07101e);border-bottom:1px solid var(--border);padding:12px 20px;position:sticky;top:0;z-index:100}
+.header-row{display:flex;align-items:center;justify-content:space-between}
 .logo{font-family:'Share Tech Mono',monospace;font-size:18px;color:var(--gold);letter-spacing:2px}
 .feed-status{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dim)}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--dim);flex-shrink:0}
 .dot.live{background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 1.5s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-
+.tabs{display:flex;gap:4px;margin-top:12px}
+.tab-btn{background:transparent;border:1px solid var(--border);color:var(--dim);padding:8px 18px;border-radius:8px 8px 0 0;cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:1px;border-bottom:none;transition:all .2s}
+.tab-btn.active{background:var(--card);color:var(--gold);border-color:var(--border)}
+.tab-content{display:none}
+.tab-content.active{display:block}
 .wrap{max-width:1200px;margin:auto;padding:16px}
-
-/* CARDS */
-.card{
-  background:var(--card);
-  border:1px solid var(--border);
-  border-radius:12px;
-  padding:16px;
-  margin-bottom:14px;
-}
-.card-title{
-  font-size:11px;letter-spacing:2px;text-transform:uppercase;
-  color:var(--dim);margin-bottom:10px;
-  font-family:'Share Tech Mono',monospace;
-}
-
-/* CHART */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px}
+.card-title{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:10px;font-family:'Share Tech Mono',monospace}
 .chart-wrap iframe{width:100%;height:400px;border:none;border-radius:8px}
-
-/* PRICE GRID */
 .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
-.stat-box{
-  background:var(--bg);border:1px solid var(--border);border-radius:10px;
-  padding:12px;display:flex;flex-direction:column;gap:4px;
-}
+.stat-box{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:4px}
 .stat-label{font-size:10px;color:var(--dim);letter-spacing:1px;text-transform:uppercase}
 .stat-val{font-family:'Share Tech Mono',monospace;font-size:20px;color:#fff;font-weight:700}
 .stat-sub{font-size:10px;color:var(--dim)}
-
-/* ENTRY ZONE */
-.zone-box{
-  background:linear-gradient(135deg,rgba(212,175,55,.08),rgba(212,175,55,.02));
-  border:1px solid rgba(212,175,55,.3);
-  border-radius:12px;padding:16px;
-}
+.zone-box{background:linear-gradient(135deg,rgba(212,175,55,.08),rgba(212,175,55,.02));border:1px solid rgba(212,175,55,.3);border-radius:12px;padding:16px}
 .zone-price{font-family:'Share Tech Mono',monospace;font-size:28px;font-weight:700}
-.zone-range{
-  display:flex;align-items:center;gap:8px;margin-top:8px;
-  font-family:'Share Tech Mono',monospace;font-size:13px;
-}
-.zone-bar{
-  flex:1;height:6px;background:var(--border);border-radius:6px;position:relative;overflow:hidden;
-}
-.zone-fill{
-  position:absolute;left:25%;width:50%;height:100%;
-  background:linear-gradient(90deg,transparent,var(--gold),transparent);
-  animation:shimmer 2s infinite;
-}
+.zone-bar{flex:1;height:6px;background:var(--border);border-radius:6px;position:relative;overflow:hidden}
+.zone-fill{position:absolute;left:25%;width:50%;height:100%;background:linear-gradient(90deg,transparent,var(--gold),transparent);animation:shimmer 2s infinite}
 @keyframes shimmer{0%{opacity:.4}50%{opacity:1}100%{opacity:.4}}
-
-/* SIGNAL */
-.sig-main{
-  text-align:center;padding:20px;
-  font-family:'Share Tech Mono',monospace;font-size:52px;font-weight:700;
-  letter-spacing:6px;transition:all .3s;
-}
+.sig-main{text-align:center;padding:20px;font-family:'Share Tech Mono',monospace;font-size:52px;font-weight:700;letter-spacing:6px;transition:all .3s}
 .sig-main.buy{color:var(--green);text-shadow:0 0 30px rgba(46,204,113,.4)}
 .sig-main.sell{color:var(--red);text-shadow:0 0 30px rgba(231,76,60,.4)}
 .sig-main.wait{color:var(--yellow);text-shadow:none}
-
-/* CONFIDENCE */
+.sig-main.sideways{color:var(--dim);font-size:38px}
 .conf-bar-wrap{height:8px;background:var(--border);border-radius:8px;overflow:hidden;margin:8px 0}
 .conf-bar{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold2));border-radius:8px;transition:width .6s ease}
-
-/* TP/SL GRID */
 .level-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
-.level-box{
-  background:var(--bg);border:1px solid var(--border);border-radius:8px;
-  padding:10px;text-align:center;
-}
+.level-box{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center}
 .level-box.entry-box{border-color:var(--gold);background:rgba(212,175,55,.05)}
 .level-box.sl-box{border-color:rgba(231,76,60,.4)}
 .level-box.tp-box{border-color:rgba(46,204,113,.3)}
 .level-label{font-size:10px;color:var(--dim);letter-spacing:1px;margin-bottom:4px}
 .level-val{font-family:'Share Tech Mono',monospace;font-size:16px;font-weight:700}
-.level-val.green{color:var(--green)}
-.level-val.red{color:var(--red)}
-.level-val.gold{color:var(--gold)}
-
-/* MTF */
+.level-val.green{color:var(--green)}.level-val.red{color:var(--red)}.level-val.gold{color:var(--gold)}
 .mtf-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.mtf-box{
-  background:var(--bg);border:1px solid var(--border);border-radius:8px;
-  padding:10px;text-align:center;
-}
+.mtf-box{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center}
 .mtf-tf{font-size:10px;color:var(--dim);margin-bottom:4px}
 .mtf-sig{font-family:'Share Tech Mono',monospace;font-size:14px;font-weight:700}
-.mtf-sig.buy{color:var(--green)}
-.mtf-sig.sell{color:var(--red)}
-.mtf-sig.wait{color:var(--yellow)}
-
-/* INPUT */
-.input-row{display:flex;gap:10px;align-items:center}
-.input-row input{
-  flex:1;background:var(--bg);border:1px solid var(--border);
-  color:#fff;padding:12px 14px;border-radius:8px;
-  font-family:'Share Tech Mono',monospace;font-size:14px;outline:none;
-}
-.input-row input:focus{border-color:var(--gold)}
-.btn{
-  background:linear-gradient(135deg,var(--gold),var(--gold2));
-  color:#07101e;border:none;padding:12px 20px;
-  border-radius:8px;font-weight:700;font-size:13px;
-  cursor:pointer;white-space:nowrap;letter-spacing:1px;
-  transition:opacity .2s;
-}
+.mtf-sig.buy{color:var(--green)}.mtf-sig.sell{color:var(--red)}.mtf-sig.wait{color:var(--yellow)}.mtf-sig.flat{color:var(--dim)}
+.input-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.input-row input,.input-row select{flex:1;min-width:120px;background:var(--bg);border:1px solid var(--border);color:#fff;padding:12px 14px;border-radius:8px;font-family:'Share Tech Mono',monospace;font-size:14px;outline:none}
+.input-row input:focus,.input-row select:focus{border-color:var(--gold)}
+.btn{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#07101e;border:none;padding:12px 20px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap;letter-spacing:1px;transition:opacity .2s}
 .btn:hover{opacity:.85}
 .btn:disabled{opacity:.4;cursor:not-allowed}
-
-/* HISTORY */
 .hist-table{width:100%;border-collapse:collapse;font-size:13px}
 .hist-table th{color:var(--dim);font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:6px 8px;border-bottom:1px solid var(--border);text-align:left}
 .hist-table td{padding:8px;border-bottom:1px solid rgba(26,47,74,.5)}
 .badge{display:inline-block;padding:2px 10px;border-radius:20px;font-family:'Share Tech Mono',monospace;font-size:12px;font-weight:700}
-.badge.buy{background:rgba(46,204,113,.15);color:var(--green)}
-.badge.sell{background:rgba(231,76,60,.15);color:var(--red)}
+.badge.buy,.badge.win{background:rgba(46,204,113,.15);color:var(--green)}
+.badge.sell,.badge.loss{background:rgba(231,76,60,.15);color:var(--red)}
 .badge.wait{background:rgba(243,156,18,.15);color:var(--yellow)}
-
-/* REFRESH TIMER */
 .refresh-row{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--dim)}
 .refresh-bar-wrap{width:100px;height:3px;background:var(--border);border-radius:3px;overflow:hidden}
 .refresh-bar{height:100%;background:var(--gold);border-radius:3px;width:100%;transition:width 1s linear}
+.warn-box{background:rgba(243,156,18,.08);border:1px solid rgba(243,156,18,.3);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--yellow);display:none}
+.warn-box.show{display:block}
+.breakdown{font-size:11px;color:var(--dim);margin-top:8px;line-height:1.6}
+.breakdown b{color:var(--text)}
+.progress-wrap{height:6px;background:var(--border);border-radius:6px;overflow:hidden;margin-top:10px;display:none}
+.progress-wrap.show{display:block}
+.progress-bar{height:100%;background:var(--gold);width:0%;transition:width .3s}
+.progress-txt{font-size:11px;color:var(--dim);margin-top:6px}
+.result-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.result-box{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center}
+.result-label{font-size:10px;color:var(--dim);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
+.result-val{font-family:'Share Tech Mono',monospace;font-size:22px;font-weight:700}
+.result-val.green{color:var(--green)}
+.result-val.red{color:var(--red)}
+.result-val.gold{color:var(--gold)}
+.verdict{padding:16px;border-radius:10px;margin-top:14px;font-size:13px;line-height:1.6}
+.verdict.good{background:rgba(46,204,113,.08);border:1px solid rgba(46,204,113,.3);color:#a8e8c0}
+.verdict.bad{background:rgba(231,76,60,.08);border:1px solid rgba(231,76,60,.3);color:#f0b0a8}
+.verdict.mid{background:rgba(243,156,18,.08);border:1px solid rgba(243,156,18,.3);color:#f5d39a}
+canvas{width:100%;height:240px;display:block}
+.scroll-table{max-height:300px;overflow-y:auto}
+.note{font-size:11px;color:var(--dim);margin-top:10px;line-height:1.6}
 </style>
 </head>
 <body>
 
 <div class="header">
-  <div class="logo">⬡ FERY AI V13</div>
-  <div class="feed-status">
-    <div class="dot" id="dot"></div>
-    <span id="feedtxt">CONNECTING...</span>
+  <div class="header-row">
+    <div class="logo">⬡ FERY AI V14</div>
+    <div class="feed-status">
+      <div class="dot" id="dot"></div>
+      <span id="feedtxt">CONNECTING...</span>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('live')">📊 LIVE DASHBOARD</button>
+    <button class="tab-btn" onclick="switchTab('backtest')">🧪 BACKTESTER</button>
   </div>
 </div>
 
 <div class="wrap">
 
-  <!-- CHART -->
+<div class="tab-content active" id="tab-live">
+
   <div class="card">
     <div class="chart-wrap">
-      <iframe src="https://s.tradingview.com/widgetembed/?symbol=OANDA:XAUUSD&interval=15&theme=dark&hide_top_toolbar=0&save_image=0"></iframe>
+      <iframe src="https://s.tradingview.com/widgetembed/?symbol=OANDA:XAUUSD&interval=15&theme=dark"></iframe>
     </div>
   </div>
 
-  <!-- LIVE STATS -->
   <div class="stat-grid" style="margin-bottom:14px">
-    <div class="stat-box">
-      <div class="stat-label">PAXG Live</div>
-      <div class="stat-val" id="price">--</div>
-      <div class="stat-sub">via Binance</div>
-    </div>
-    <div class="stat-box">
-      <div class="stat-label">Trend</div>
-      <div class="stat-val" id="trend" style="font-size:15px">--</div>
-    </div>
-    <div class="stat-box">
-      <div class="stat-label">RSI (14)</div>
-      <div class="stat-val" id="rsi">--</div>
-    </div>
-    <div class="stat-box">
-      <div class="stat-label">ATR</div>
-      <div class="stat-val" id="atr">--</div>
-    </div>
-    <div class="stat-box">
-      <div class="stat-label">Session</div>
-      <div class="stat-val" id="session" style="font-size:14px">--</div>
-    </div>
-    <div class="stat-box">
-      <div class="stat-label">Candles</div>
-      <div class="stat-val" id="candle-count">0</div>
-      <div class="stat-sub">loaded</div>
-    </div>
+    <div class="stat-box"><div class="stat-label">PAXG Live</div><div class="stat-val" id="price">--</div><div class="stat-sub">via Binance</div></div>
+    <div class="stat-box"><div class="stat-label">Trend</div><div class="stat-val" id="trend" style="font-size:15px">--</div></div>
+    <div class="stat-box"><div class="stat-label">RSI (14)</div><div class="stat-val" id="rsi">--</div></div>
+    <div class="stat-box"><div class="stat-label">ATR</div><div class="stat-val" id="atr">--</div></div>
+    <div class="stat-box"><div class="stat-label">ADX</div><div class="stat-val" id="adx">--</div><div class="stat-sub" id="adx-label">--</div></div>
+    <div class="stat-box"><div class="stat-label">Session</div><div class="stat-val" id="session" style="font-size:14px">--</div></div>
+    <div class="stat-box"><div class="stat-label">Candles</div><div class="stat-val" id="candle-count">0</div><div class="stat-sub">M15 loaded</div></div>
   </div>
 
-  <!-- BROKER OFFSET + GENERATE -->
+  <div class="warn-box" id="sideways-warn">
+    ⚠️ ADX dibawah 20 — market sideways/ranging. Sinyal BUY/SELL ditahan otomatis untuk hindari false signal.
+  </div>
+
   <div class="card">
     <div class="card-title">Broker Adjustment</div>
     <div class="input-row">
@@ -217,12 +146,11 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
       <button class="btn" id="genbtn" onclick="analyze()">⚡ GENERATE</button>
     </div>
     <div style="margin-top:10px;font-size:12px;color:var(--dim)">
-      Offset: <span id="offset" style="color:var(--gold);font-family:'Share Tech Mono',monospace">0.00</span> pts &nbsp;|&nbsp; 
+      Offset: <span id="offset" style="color:var(--gold);font-family:'Share Tech Mono',monospace">0.00</span> pts &nbsp;|&nbsp;
       Range entry: ±2.00 pts dari harga referensi
     </div>
   </div>
 
-  <!-- SIGNAL -->
   <div class="card">
     <div class="card-title">Signal</div>
     <div class="sig-main wait" id="signal">WAIT</div>
@@ -231,60 +159,37 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
       <span id="conf-pct" style="font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--gold)">0%</span>
     </div>
     <div class="conf-bar-wrap"><div class="conf-bar" id="conf-bar" style="width:0%"></div></div>
+    <div class="breakdown" id="breakdown">Menunggu data candle untuk kalkulasi...</div>
   </div>
 
-  <!-- ENTRY ZONE -->
   <div class="card">
     <div class="card-title">Entry Zone</div>
     <div class="zone-box">
       <div style="font-size:11px;color:var(--dim);margin-bottom:6px">ZONA ENTRY (±2 pts)</div>
       <div style="display:flex;align-items:baseline;gap:12px">
-        <div>
-          <div style="font-size:10px;color:var(--dim)">LOW</div>
-          <div class="zone-price" id="zone-low" style="color:var(--red)">--</div>
-        </div>
+        <div><div style="font-size:10px;color:var(--dim)">LOW</div><div class="zone-price" id="zone-low" style="color:var(--red)">--</div></div>
         <div style="flex:1">
           <div class="zone-bar"><div class="zone-fill"></div></div>
           <div style="text-align:center;font-size:10px;color:var(--gold);margin-top:4px">ENTRY RANGE</div>
         </div>
-        <div>
-          <div style="font-size:10px;color:var(--dim)">HIGH</div>
-          <div class="zone-price" id="zone-high" style="color:var(--green)">--</div>
-        </div>
+        <div><div style="font-size:10px;color:var(--dim)">HIGH</div><div class="zone-price" id="zone-high" style="color:var(--green)">--</div></div>
       </div>
     </div>
   </div>
 
-  <!-- TP / SL LEVELS -->
   <div class="card">
     <div class="card-title">Trade Levels</div>
     <div class="level-grid">
-      <div class="level-box entry-box">
-        <div class="level-label">ENTRY REF</div>
-        <div class="level-val gold" id="entry">--</div>
-      </div>
-      <div class="level-box sl-box">
-        <div class="level-label">STOP LOSS</div>
-        <div class="level-val red" id="sl">--</div>
-      </div>
-      <div class="level-box tp-box">
-        <div class="level-label">TP 1</div>
-        <div class="level-val green" id="tp1">--</div>
-      </div>
-      <div class="level-box tp-box">
-        <div class="level-label">TP 2</div>
-        <div class="level-val green" id="tp2">--</div>
-      </div>
-      <div class="level-box tp-box">
-        <div class="level-label">TP 3</div>
-        <div class="level-val green" id="tp3">--</div>
-      </div>
+      <div class="level-box entry-box"><div class="level-label">ENTRY REF</div><div class="level-val gold" id="entry">--</div></div>
+      <div class="level-box sl-box"><div class="level-label">STOP LOSS</div><div class="level-val red" id="sl">--</div></div>
+      <div class="level-box tp-box"><div class="level-label">TP 1</div><div class="level-val green" id="tp1">--</div></div>
+      <div class="level-box tp-box"><div class="level-label">TP 2</div><div class="level-val green" id="tp2">--</div></div>
+      <div class="level-box tp-box"><div class="level-label">TP 3</div><div class="level-val green" id="tp3">--</div></div>
     </div>
   </div>
 
-  <!-- MTF -->
   <div class="card">
-    <div class="card-title">Multi Timeframe (Candle Asli)</div>
+    <div class="card-title">Multi Timeframe (Candle Asli + ADX Filter)</div>
     <div class="mtf-grid">
       <div class="mtf-box"><div class="mtf-tf">M1</div><div class="mtf-sig wait" id="mtf-m1">--</div></div>
       <div class="mtf-box"><div class="mtf-tf">M5</div><div class="mtf-sig wait" id="mtf-m5">--</div></div>
@@ -293,7 +198,6 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
     </div>
   </div>
 
-  <!-- AUTO REFRESH STATUS -->
   <div class="card">
     <div class="refresh-row">
       <span>Auto refresh candle tiap 30 detik</span>
@@ -304,25 +208,261 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
     </div>
   </div>
 
-  <!-- HISTORY -->
   <div class="card">
     <div class="card-title">Signal History</div>
     <table class="hist-table">
-      <thead><tr><th>Waktu</th><th>Signal</th><th>Confidence</th><th>Entry Zone</th></tr></thead>
+      <thead><tr><th>Waktu</th><th>Signal</th><th>Conf</th><th>ADX</th><th>Zone</th></tr></thead>
       <tbody id="histbody"></tbody>
     </table>
   </div>
 
 </div>
 
+<div class="tab-content" id="tab-backtest">
+
+  <div class="card">
+    <div class="card-title">Konfigurasi Backtest</div>
+    <div class="input-row">
+      <select id="timeframe">
+        <option value="15m">M15</option>
+        <option value="5m">M5</option>
+        <option value="1h">H1</option>
+        <option value="1m">M1</option>
+      </select>
+      <select id="candleCount">
+        <option value="500">500 candle</option>
+        <option value="1000" selected>1000 candle</option>
+      </select>
+      <button class="btn" id="runBtn" onclick="runBacktest()">▶ JALANKAN BACKTEST</button>
+    </div>
+    <div class="progress-wrap" id="progWrap">
+      <div class="progress-bar" id="progBar"></div>
+    </div>
+    <div class="progress-txt" id="progTxt"></div>
+  </div>
+
+  <div class="card" id="resultsCard" style="display:none">
+    <div class="card-title">Hasil Backtest</div>
+    <div class="result-grid">
+      <div class="result-box"><div class="result-label">Total Trade</div><div class="result-val gold" id="r-total">0</div></div>
+      <div class="result-box"><div class="result-label">Winrate</div><div class="result-val" id="r-winrate">0%</div></div>
+      <div class="result-box"><div class="result-label">Profit Factor</div><div class="result-val" id="r-pf">0</div></div>
+      <div class="result-box"><div class="result-label">Max Drawdown</div><div class="result-val red" id="r-dd">0%</div></div>
+      <div class="result-box"><div class="result-label">Win / Loss</div><div class="result-val" id="r-wl">0/0</div></div>
+      <div class="result-box"><div class="result-label">Avg R</div><div class="result-val" id="r-avgr">0</div></div>
+    </div>
+    <div class="verdict" id="verdict"></div>
+    <div class="note">
+      <b>Catatan limitasi:</b> backtest pakai data PAXG/USDT (proxy gold), bukan harga broker XAU asli lo. Spread, slippage, dan requote broker gak masuk hitungan. TP1 dipakai sebagai exit (1.5x ATR). Hasil ini indikasi historis, bukan garansi performa ke depan.
+    </div>
+  </div>
+
+  <div class="card" id="equityCard" style="display:none">
+    <div class="card-title">Equity Curve (dalam R, bukan uang asli)</div>
+    <canvas id="equityChart"></canvas>
+  </div>
+
+  <div class="card" id="tradesCard" style="display:none">
+    <div class="card-title">Daftar Trade</div>
+    <div class="scroll-table">
+      <table class="hist-table">
+        <thead><tr><th>Waktu</th><th>Signal</th><th>Entry</th><th>Exit</th><th>Result</th><th>R</th></tr></thead>
+        <tbody id="tradeBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+</div>
+
 <script>
-// ─── STATE ───
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+
+const ADX_THRESHOLD = 20;
+const CONF_THRESHOLD = 70;
+const CANDLE_LIMIT = 500;
+
+function closes(c) { return c.map(x => x.close); }
+
+function ema(arr, p) {
+  if (arr.length < p) return null;
+  let k = 2/(p+1), e = arr[0];
+  for (let i = 1; i < arr.length; i++) e = arr[i]*k + e*(1-k);
+  return e;
+}
+
+function emaSeries(arr, p) {
+  let out = new Array(arr.length).fill(null);
+  if (arr.length < p) return out;
+  let k = 2/(p+1), e = arr[0];
+  out[0] = e;
+  for (let i = 1; i < arr.length; i++) { e = arr[i]*k + e*(1-k); out[i] = e; }
+  return out;
+}
+
+function rsi(arr, p = 14) {
+  if (arr.length < p + 1) return 50;
+  let g=0,l=0;
+  for (let i = arr.length-p; i < arr.length; i++) {
+    let d = arr[i]-arr[i-1];
+    if (d>0) g+=d; else l-=d;
+  }
+  let rs = g/(l||0.0001);
+  return 100-100/(1+rs);
+}
+
+function rsiAt(arr, idx, p = 14) {
+  if (idx < p) return 50;
+  let g=0,l=0;
+  for (let i = idx-p+1; i <= idx; i++) {
+    let d = arr[i]-arr[i-1];
+    if (d>0) g+=d; else l-=d;
+  }
+  let rs = g/(l||0.0001);
+  return 100-100/(1+rs);
+}
+
+function atr(c, p = 14) {
+  if (c.length < p+1) return null;
+  let trs = [];
+  for (let i = 1; i < c.length; i++) {
+    let h=c[i].high, l=c[i].low, pc=c[i-1].close;
+    trs.push(Math.max(h-l, Math.abs(h-pc), Math.abs(l-pc)));
+  }
+  return trs.slice(-p).reduce((a,b)=>a+b,0)/p;
+}
+
+function atrAt(c, idx, p = 14) {
+  if (idx < p) return null;
+  let trs = [];
+  for (let i = idx-p+1; i <= idx; i++) {
+    let h=c[i].high, l=c[i].low, pc=c[i-1].close;
+    trs.push(Math.max(h-l, Math.abs(h-pc), Math.abs(l-pc)));
+  }
+  return trs.reduce((a,b)=>a+b,0)/p;
+}
+
+function adx(c, p = 14) {
+  if (c.length < p*2) return null;
+  let plusDM=[], minusDM=[], trs=[];
+  for (let i=1;i<c.length;i++){
+    let upMove=c[i].high-c[i-1].high, downMove=c[i-1].low-c[i].low;
+    plusDM.push(upMove>downMove&&upMove>0?upMove:0);
+    minusDM.push(downMove>upMove&&downMove>0?downMove:0);
+    let h=c[i].high,l=c[i].low,pc=c[i-1].close;
+    trs.push(Math.max(h-l,Math.abs(h-pc),Math.abs(l-pc)));
+  }
+  function smooth(arr, p) {
+    let s = arr.slice(0,p).reduce((a,b)=>a+b,0);
+    let out = [s];
+    for (let i=p;i<arr.length;i++) { s = s - (s/p) + arr[i]; out.push(s); }
+    return out;
+  }
+  let trS = smooth(trs,p), pdS = smooth(plusDM,p), mdS = smooth(minusDM,p);
+  let dx = [];
+  for (let i=0;i<trS.length;i++) {
+    let pdi=(pdS[i]/(trS[i]||0.0001))*100, mdi=(mdS[i]/(trS[i]||0.0001))*100;
+    dx.push(Math.abs(pdi-mdi)/((pdi+mdi)||0.0001)*100);
+  }
+  let adxArr = smooth(dx,p).map(v=>v/p);
+  return adxArr[adxArr.length-1];
+}
+
+function adxSeries(c, p = 14) {
+  let n = c.length;
+  let plusDM=[null], minusDM=[null], trs=[null];
+  for (let i=1;i<n;i++){
+    let upMove=c[i].high-c[i-1].high, downMove=c[i-1].low-c[i].low;
+    plusDM.push(upMove>downMove&&upMove>0?upMove:0);
+    minusDM.push(downMove>upMove&&downMove>0?downMove:0);
+    let h=c[i].high,l=c[i].low,pc=c[i-1].close;
+    trs.push(Math.max(h-l,Math.abs(h-pc),Math.abs(l-pc)));
+  }
+  let adx = new Array(n).fill(null);
+  if (n < p*2) return adx;
+  let trSm = trs[1]; for(let i=2;i<=p;i++) trSm += trs[i];
+  let pdSm = plusDM[1]; for(let i=2;i<=p;i++) pdSm += plusDM[i];
+  let mdSm = minusDM[1]; for(let i=2;i<=p;i++) mdSm += minusDM[i];
+  let dxArr = [];
+  for (let i=p+1;i<n;i++){
+    trSm = trSm - trSm/p + trs[i];
+    pdSm = pdSm - pdSm/p + plusDM[i];
+    mdSm = mdSm - mdSm/p + minusDM[i];
+    let pdi=(pdSm/(trSm||0.0001))*100, mdi=(mdSm/(trSm||0.0001))*100;
+    dxArr.push(Math.abs(pdi-mdi)/((pdi+mdi)||0.0001)*100);
+  }
+  let adxVal = dxArr.slice(0,p).reduce((a,b)=>a+b,0)/p;
+  let startIdx = p+p;
+  if (startIdx < n) adx[startIdx] = adxVal;
+  for (let i=startIdx+1;i<n;i++){
+    let dxIdx = i-(p+1);
+    adxVal = (adxVal*(p-1) + dxArr[dxIdx]) / p;
+    adx[i] = adxVal;
+  }
+  return adx;
+}
+
+function calcSignal(cdls) {
+  let empty = { sig:"WAIT", conf:0, rsiVal:50, atrVal:0, adxVal:0, e20:0, e50:0, e200:0, breakdown:"Data belum cukup (min 250 candle)." };
+  if (cdls.length < 250) return empty;
+
+  let cl = closes(cdls);
+  let e20  = ema(cl, 20);
+  let e50  = ema(cl, 50);
+  let e200 = ema(cl, 200);
+  let rsiVal = rsi(cl);
+  let atrVal = atr(cdls) || 0;
+  let adxVal = adx(cdls) || 0;
+
+  if (adxVal < ADX_THRESHOLD) {
+    return {
+      sig: "SIDEWAYS", conf: 0, rsiVal, atrVal, adxVal, e20, e50, e200,
+      breakdown: `ADX ${adxVal.toFixed(1)} < ${ADX_THRESHOLD} → market ranging, sinyal ditahan.`
+    };
+  }
+
+  let buyConf = 0, sellConf = 0, notes = [];
+  if (e20 > e50)   { buyConf += 25; notes.push("EMA20>EMA50 (+25 buy)"); }
+  if (e50 > e200)  { buyConf += 25; notes.push("EMA50>EMA200 (+25 buy)"); }
+  if (rsiVal > 55) { buyConf += 25; notes.push(`RSI ${rsiVal.toFixed(1)}>55 (+25 buy)`); }
+  if (rsiVal > 60) { buyConf += 10; notes.push("RSI>60 momentum (+10 buy)"); }
+  if (adxVal > 25) { buyConf += 15; notes.push(`ADX ${adxVal.toFixed(1)}>25 trend kuat (+15 buy)`); }
+
+  if (e20 < e50)   { sellConf += 25; notes.push("EMA20<EMA50 (+25 sell)"); }
+  if (e50 < e200)  { sellConf += 25; notes.push("EMA50<EMA200 (+25 sell)"); }
+  if (rsiVal < 45) { sellConf += 25; notes.push(`RSI ${rsiVal.toFixed(1)}<45 (+25 sell)`); }
+  if (rsiVal < 40) { sellConf += 10; notes.push("RSI<40 momentum (+10 sell)"); }
+  if (adxVal > 25) { sellConf += 15; }
+
+  let sig = "WAIT", conf = Math.max(buyConf, sellConf);
+  if (buyConf >= CONF_THRESHOLD && buyConf > sellConf)       sig = "BUY";
+  else if (sellConf >= CONF_THRESHOLD && sellConf > buyConf) sig = "SELL";
+
+  let breakdown = sig === "WAIT"
+    ? `Confidence ${conf}% belum capai threshold 70%. ${notes.join(", ")}`
+    : `${notes.join(", ")}`;
+
+  return { sig, conf, rsiVal, atrVal, adxVal, e20, e50, e200, breakdown };
+}
+
+async function fetchKlines(symbol, interval, limit) {
+  let url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
+  let r = await fetch(url);
+  let data = await r.json();
+  return data.map(k => ({ time:k[0], open:+k[1], high:+k[2], low:+k[3], close:+k[4] }));
+}
+
 let candles = { m1:[], m5:[], m15:[], h1:[] };
 let livePrice = 0;
 let refreshTimer = 30;
 let refreshInterval = null;
 
-// ─── SESSION ───
 function sessionName() {
   let h = new Date().getUTCHours();
   if (h >= 22 || h < 2)  return "🌏 SYDNEY";
@@ -332,116 +472,34 @@ function sessionName() {
 }
 document.getElementById("session").innerText = sessionName();
 
-// ─── INDICATORS (dari candle OHLC) ───
-function closes(candles) { return candles.map(c => c.close); }
-
-function ema(arr, p) {
-  if (arr.length < p) return null;
-  let k = 2 / (p + 1), e = arr[0];
-  for (let i = 1; i < arr.length; i++) e = arr[i] * k + e * (1 - k);
-  return e;
-}
-
-function rsi(arr, p = 14) {
-  if (arr.length < p + 1) return 50;
-  let g = 0, l = 0;
-  for (let i = arr.length - p; i < arr.length; i++) {
-    let d = arr[i] - arr[i - 1];
-    if (d > 0) g += d; else l -= d;
-  }
-  let rs = g / (l || 0.0001);
-  return 100 - 100 / (1 + rs);
-}
-
-function atr(candles, p = 14) {
-  if (candles.length < p + 1) return null;
-  let trs = [];
-  for (let i = 1; i < candles.length; i++) {
-    let h = candles[i].high, l = candles[i].low, pc = candles[i-1].close;
-    trs.push(Math.max(h - l, Math.abs(h - pc), Math.abs(l - pc)));
-  }
-  let recent = trs.slice(-p);
-  return recent.reduce((a, b) => a + b, 0) / p;
-}
-
-function calcSignal(cdls) {
-  if (cdls.length < 50) return { sig: "WAIT", conf: 0, rsiVal: 50, atrVal: 0, e20: 0, e50: 0, e200: 0 };
-  let cl = closes(cdls);
-  let e20  = ema(cl, 20);
-  let e50  = ema(cl, 50);
-  let e200 = ema(cl, Math.min(200, cl.length));
-  let rsiVal = rsi(cl);
-  let atrVal = atr(cdls) || 0;
-
-  let conf = 0;
-  if (e20 > e50)   conf += 25;
-  if (e50 > e200)  conf += 25;
-  if (rsiVal > 55) conf += 25;
-  if (rsiVal > 60) conf += 10;
-  if (e20 > e200)  conf += 15;
-
-  // SELL scoring
-  let sellConf = 0;
-  if (e20 < e50)   sellConf += 25;
-  if (e50 < e200)  sellConf += 25;
-  if (rsiVal < 45) sellConf += 25;
-  if (rsiVal < 40) sellConf += 10;
-  if (e20 < e200)  sellConf += 15;
-
-  let sig = "WAIT";
-  if (conf >= 65 && conf > sellConf)      { sig = "BUY"; }
-  else if (sellConf >= 65 && sellConf > conf) { sig = "SELL"; conf = sellConf; }
-  else { conf = Math.max(conf, sellConf); }
-
-  return { sig, conf, rsiVal, atrVal, e20, e50, e200 };
-}
-
-// ─── FETCH CANDLES ───
-async function fetchKlines(symbol, interval, limit = 200) {
-  let url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
-  let r = await fetch(url);
-  let data = await r.json();
-  return data.map(k => ({
-    time:  k[0],
-    open:  parseFloat(k[1]),
-    high:  parseFloat(k[2]),
-    low:   parseFloat(k[3]),
-    close: parseFloat(k[4]),
-  }));
-}
-
 async function loadAllCandles() {
   try {
     setStatus("Fetching candles...", false);
     let [m1, m5, m15, h1] = await Promise.all([
-      fetchKlines("PAXGUSDT", "1m",  200),
-      fetchKlines("PAXGUSDT", "5m",  200),
-      fetchKlines("PAXGUSDT", "15m", 200),
-      fetchKlines("PAXGUSDT", "1h",  200),
+      fetchKlines("PAXGUSDT", "1m",  CANDLE_LIMIT),
+      fetchKlines("PAXGUSDT", "5m",  CANDLE_LIMIT),
+      fetchKlines("PAXGUSDT", "15m", CANDLE_LIMIT),
+      fetchKlines("PAXGUSDT", "1h",  CANDLE_LIMIT),
     ]);
-    candles.m1  = m1;
-    candles.m5  = m5;
-    candles.m15 = m15;
-    candles.h1  = h1;
+    candles.m1 = m1; candles.m5 = m5; candles.m15 = m15; candles.h1 = h1;
 
-    // Ambil harga live dari close candle M1 terbaru
     if (m1.length) {
       livePrice = m1[m1.length - 1].close;
       document.getElementById("price").innerText = livePrice.toFixed(2);
     }
-
     document.getElementById("candle-count").innerText = m15.length;
 
-    // Update indikator otomatis dari M15
     let res15 = calcSignal(candles.m15);
     document.getElementById("rsi").innerText   = res15.rsiVal.toFixed(1);
     document.getElementById("atr").innerText   = res15.atrVal.toFixed(2);
+    document.getElementById("adx").innerText   = res15.adxVal.toFixed(1);
+    document.getElementById("adx-label").innerText = res15.adxVal >= 25 ? "Trending" : res15.adxVal >= 20 ? "Lemah" : "Sideways";
     document.getElementById("trend").innerText = res15.e20 > res15.e50 ? "↑ UP" : "↓ DOWN";
 
-    // Update MTF
-    updateMTF();
+    document.getElementById("sideways-warn").className = res15.adxVal < ADX_THRESHOLD ? "warn-box show" : "warn-box";
 
-    setStatus("LIVE — Candle data", true);
+    updateMTF();
+    setStatus("LIVE — 500 candle, ADX filter aktif", true);
   } catch (err) {
     setStatus("Gagal fetch, retry...", false);
   }
@@ -449,27 +507,23 @@ async function loadAllCandles() {
 
 function updateMTF() {
   let tfs = [
-    { id: "mtf-m1",  cdls: candles.m1  },
-    { id: "mtf-m5",  cdls: candles.m5  },
-    { id: "mtf-m15", cdls: candles.m15 },
-    { id: "mtf-h1",  cdls: candles.h1  },
+    { id:"mtf-m1", c:candles.m1 }, { id:"mtf-m5", c:candles.m5 },
+    { id:"mtf-m15", c:candles.m15 }, { id:"mtf-h1", c:candles.h1 },
   ];
-  tfs.forEach(({ id, cdls }) => {
+  tfs.forEach(({id,c}) => {
     let el = document.getElementById(id);
-    if (cdls.length < 50) { el.innerText = "WAIT"; el.className = "mtf-sig wait"; return; }
-    let { sig } = calcSignal(cdls);
-    el.innerText = sig;
-    el.className = "mtf-sig " + sig.toLowerCase();
+    if (c.length < 250) { el.innerText = "WAIT"; el.className = "mtf-sig wait"; return; }
+    let { sig } = calcSignal(c);
+    el.innerText = sig === "SIDEWAYS" ? "FLAT" : sig;
+    el.className = "mtf-sig " + (sig === "SIDEWAYS" ? "flat" : sig.toLowerCase());
   });
 }
 
-// ─── FEED STATUS ───
 function setStatus(txt, ok) {
   document.getElementById("feedtxt").innerText = txt;
   document.getElementById("dot").className = "dot" + (ok ? " live" : "");
 }
 
-// ─── WEBSOCKET harga live (tick) ───
 function connectWS() {
   let ws = new WebSocket("wss://stream.binance.com:9443/ws/paxgusdt@trade");
   ws.onmessage = (e) => {
@@ -479,103 +533,294 @@ function connectWS() {
   };
   ws.onclose = () => setTimeout(connectWS, 4000);
 }
-connectWS();
 
-// ─── AUTO REFRESH ───
 function startRefresh() {
   refreshTimer = 30;
   if (refreshInterval) clearInterval(refreshInterval);
   refreshInterval = setInterval(() => {
     refreshTimer--;
     document.getElementById("refresh-countdown").innerText = refreshTimer + "s";
-    document.getElementById("refresh-bar").style.width = (refreshTimer / 30 * 100) + "%";
-    if (refreshTimer <= 0) {
-      loadAllCandles();
-      refreshTimer = 30;
-    }
+    document.getElementById("refresh-bar").style.width = (refreshTimer/30*100) + "%";
+    if (refreshTimer <= 0) { loadAllCandles(); refreshTimer = 30; }
   }, 1000);
 }
 
-// ─── ANALYZE ───
 function analyze() {
-  if (candles.m15.length < 50) { alert("Data candle belum cukup, tunggu sebentar..."); return; }
+  if (candles.m15.length < 250) { alert("Data candle belum cukup, tunggu sebentar..."); return; }
 
   let brokerVal = parseFloat(document.getElementById("broker").value);
   let ref = isNaN(brokerVal) ? livePrice : brokerVal;
-
   let off = ref - livePrice;
   document.getElementById("offset").innerText = (off >= 0 ? "+" : "") + off.toFixed(2);
 
   let res = calcSignal(candles.m15);
-  let { sig, conf, atrVal } = res;
+  let { sig, conf, atrVal, adxVal, breakdown } = res;
 
-  // ATR dari candle asli, min 1
+  let sigEl = document.getElementById("signal");
+  let displaySig = sig === "SIDEWAYS" ? "SIDEWAYS" : sig;
+  sigEl.innerText = displaySig;
+  sigEl.className = "sig-main " + (sig === "SIDEWAYS" ? "sideways" : sig.toLowerCase());
+
+  document.getElementById("conf-pct").innerText = conf + "%";
+  document.getElementById("conf-bar").style.width = conf + "%";
+  document.getElementById("breakdown").innerHTML = "<b>Alasan:</b> " + breakdown;
+
+  let zLow = ref - 2, zHigh = ref + 2;
+  document.getElementById("zone-low").innerText = zLow.toFixed(2);
+  document.getElementById("zone-high").innerText = zHigh.toFixed(2);
+
   let atrUse = Math.max(atrVal, 1);
-
-  // ENTRY ZONE ±2
-  let zLow  = ref - 2;
-  let zHigh = ref + 2;
-
   let sl, tp1, tp2, tp3;
   if (sig === "BUY") {
-    sl  = ref - atrUse;
-    tp1 = ref + 1.5 * atrUse;
-    tp2 = ref + 3   * atrUse;
-    tp3 = ref + 5   * atrUse;
+    sl = ref - atrUse; tp1 = ref + 1.5*atrUse; tp2 = ref + 3*atrUse; tp3 = ref + 5*atrUse;
   } else if (sig === "SELL") {
-    sl  = ref + atrUse;
-    tp1 = ref - 1.5 * atrUse;
-    tp2 = ref - 3   * atrUse;
-    tp3 = ref - 5   * atrUse;
+    sl = ref + atrUse; tp1 = ref - 1.5*atrUse; tp2 = ref - 3*atrUse; tp3 = ref - 5*atrUse;
   } else {
     sl = tp1 = tp2 = tp3 = ref;
   }
 
-  // UPDATE UI
-  let sigEl = document.getElementById("signal");
-  sigEl.innerText = sig;
-  sigEl.className = "sig-main " + sig.toLowerCase();
-
-  document.getElementById("conf-pct").innerText = conf + "%";
-  document.getElementById("conf-bar").style.width = conf + "%";
-
-  document.getElementById("zone-low").innerText  = zLow.toFixed(2);
-  document.getElementById("zone-high").innerText = zHigh.toFixed(2);
   document.getElementById("entry").innerText = ref.toFixed(2);
-  document.getElementById("sl").innerText    = sl.toFixed(2);
-  document.getElementById("tp1").innerText   = tp1.toFixed(2);
-  document.getElementById("tp2").innerText   = tp2.toFixed(2);
-  document.getElementById("tp3").innerText   = tp3.toFixed(2);
+  document.getElementById("sl").innerText = sl.toFixed(2);
+  document.getElementById("tp1").innerText = tp1.toFixed(2);
+  document.getElementById("tp2").innerText = tp2.toFixed(2);
+  document.getElementById("tp3").innerText = tp3.toFixed(2);
 
-  saveHistory(sig, conf, zLow, zHigh);
+  saveHistory(displaySig, conf, adxVal, zLow, zHigh);
 }
 
-// ─── HISTORY ───
-function saveHistory(sig, conf, zLow, zHigh) {
-  let arr = JSON.parse(localStorage.getItem("fery_v13") || "[]");
-  arr.unshift({
-    t: new Date().toLocaleString("id-ID"),
-    s: sig, c: conf,
-    zone: zLow.toFixed(2) + " – " + zHigh.toFixed(2)
-  });
+function saveHistory(sig, conf, adxVal, zLow, zHigh) {
+  let arr = JSON.parse(localStorage.getItem("fery_v14") || "[]");
+  arr.unshift({ t:new Date().toLocaleString("id-ID"), s:sig, c:conf, adx:adxVal.toFixed(1), zone:zLow.toFixed(2)+" – "+zHigh.toFixed(2) });
   arr = arr.slice(0, 25);
-  localStorage.setItem("fery_v13", JSON.stringify(arr));
+  localStorage.setItem("fery_v14", JSON.stringify(arr));
   renderHistory();
 }
 function renderHistory() {
-  let arr = JSON.parse(localStorage.getItem("fery_v13") || "[]");
+  let arr = JSON.parse(localStorage.getItem("fery_v14") || "[]");
   document.getElementById("histbody").innerHTML = arr.map(x => `
     <tr>
       <td style="color:var(--dim);font-size:12px">${x.t}</td>
-      <td><span class="badge ${x.s.toLowerCase()}">${x.s}</span></td>
+      <td><span class="badge ${x.s.toLowerCase()==='sideways'?'wait':x.s.toLowerCase()}">${x.s}</span></td>
       <td style="font-family:'Share Tech Mono',monospace">${x.c}%</td>
-      <td style="font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--gold)">${x.zone || "-"}</td>
+      <td style="font-family:'Share Tech Mono',monospace;color:var(--dim)">${x.adx}</td>
+      <td style="font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--gold)">${x.zone||"-"}</td>
     </tr>
   `).join("");
 }
-renderHistory();
 
-// ─── INIT ───
+function setProgress(pct, txt) {
+  document.getElementById("progWrap").className = "progress-wrap show";
+  document.getElementById("progBar").style.width = pct + "%";
+  document.getElementById("progTxt").innerText = txt;
+}
+
+async function runBacktest() {
+  let btn = document.getElementById("runBtn");
+  btn.disabled = true;
+  setProgress(10, "Mengambil data candle...");
+
+  let tf = document.getElementById("timeframe").value;
+  let limit = parseInt(document.getElementById("candleCount").value);
+
+  let btCandles;
+  try {
+    btCandles = await fetchKlines("PAXGUSDT", tf, Math.min(limit, 1000));
+  } catch (e) {
+    setProgress(0, "Gagal fetch data. Coba lagi.");
+    btn.disabled = false;
+    return;
+  }
+
+  if (btCandles.length < 250) {
+    setProgress(0, "Data candle tidak cukup untuk backtest.");
+    btn.disabled = false;
+    return;
+  }
+
+  setProgress(30, "Menghitung indikator (EMA, RSI, ADX, ATR)...");
+  await new Promise(r => setTimeout(r, 50));
+
+  let cl = closes(btCandles);
+  let e20s = emaSeries(cl, 20);
+  let e50s = emaSeries(cl, 50);
+  let e200s = emaSeries(cl, 200);
+  let adxArr = adxSeries(btCandles, 14);
+
+  setProgress(55, "Simulasi entry/exit candle-by-candle...");
+  await new Promise(r => setTimeout(r, 50));
+
+  let trades = [];
+  let inPosition = false;
+  let posType = null, entryPrice = 0, slPrice = 0, tpPrice = 0;
+
+  for (let i = 250; i < btCandles.length; i++) {
+    let c = btCandles[i];
+
+    if (inPosition) {
+      let hit = null;
+      if (posType === "BUY") {
+        if (c.low <= slPrice) hit = "LOSS";
+        else if (c.high >= tpPrice) hit = "WIN";
+      } else {
+        if (c.high >= slPrice) hit = "LOSS";
+        else if (c.low <= tpPrice) hit = "WIN";
+      }
+      if (hit) {
+        trades.push({
+          time: new Date(c.time).toLocaleDateString("id-ID"),
+          sig: posType,
+          entry: entryPrice.toFixed(2),
+          exit: (hit === "WIN" ? tpPrice : slPrice).toFixed(2),
+          result: hit,
+          r: hit === "WIN" ? 1.5 : -1
+        });
+        inPosition = false;
+      }
+      continue;
+    }
+
+    let e20 = e20s[i], e50 = e50s[i], e200 = e200s[i], adxVal = adxArr[i];
+    if (e20 == null || e50 == null || e200 == null || adxVal == null) continue;
+    if (adxVal < ADX_THRESHOLD) continue;
+
+    let rsiVal = rsiAt(cl, i);
+    let atrVal = atrAt(btCandles, i) || 1;
+    let atrUse = Math.max(atrVal, 1);
+
+    let buyConf = 0, sellConf = 0;
+    if (e20 > e50) buyConf += 25;
+    if (e50 > e200) buyConf += 25;
+    if (rsiVal > 55) buyConf += 25;
+    if (rsiVal > 60) buyConf += 10;
+    if (adxVal > 25) buyConf += 15;
+
+    if (e20 < e50) sellConf += 25;
+    if (e50 < e200) sellConf += 25;
+    if (rsiVal < 45) sellConf += 25;
+    if (rsiVal < 40) sellConf += 10;
+    if (adxVal > 25) sellConf += 15;
+
+    if (buyConf >= CONF_THRESHOLD && buyConf > sellConf) {
+      inPosition = true; posType = "BUY"; entryPrice = c.close;
+      slPrice = entryPrice - atrUse; tpPrice = entryPrice + 1.5*atrUse;
+    } else if (sellConf >= CONF_THRESHOLD && sellConf > buyConf) {
+      inPosition = true; posType = "SELL"; entryPrice = c.close;
+      slPrice = entryPrice + atrUse; tpPrice = entryPrice - 1.5*atrUse;
+    }
+  }
+
+  setProgress(85, "Menghitung statistik...");
+  await new Promise(r => setTimeout(r, 50));
+
+  renderBacktestResults(trades);
+  setProgress(100, `Selesai. ${trades.length} trade ditemukan dari ${btCandles.length} candle.`);
+  btn.disabled = false;
+}
+
+function renderBacktestResults(trades) {
+  document.getElementById("resultsCard").style.display = "block";
+  document.getElementById("equityCard").style.display = "block";
+  document.getElementById("tradesCard").style.display = "block";
+
+  let wins = trades.filter(t => t.result === "WIN").length;
+  let losses = trades.filter(t => t.result === "LOSS").length;
+  let total = trades.length;
+  let winrate = total ? (wins/total*100) : 0;
+
+  let grossWin = wins * 1.5;
+  let grossLoss = losses * 1;
+  let pf = grossLoss ? (grossWin/grossLoss) : (grossWin > 0 ? 99 : 0);
+
+  let equity = 0, peak = 0, maxDD = 0, equityCurve = [0];
+  trades.forEach(t => {
+    equity += t.r;
+    equityCurve.push(equity);
+    if (equity > peak) peak = equity;
+    let dd = peak - equity;
+    if (dd > maxDD) maxDD = dd;
+  });
+
+  let avgR = total ? (trades.reduce((a,t)=>a+t.r,0)/total) : 0;
+
+  document.getElementById("r-total").innerText = total;
+  document.getElementById("r-winrate").innerText = winrate.toFixed(1) + "%";
+  document.getElementById("r-winrate").className = "result-val " + (winrate >= 50 ? "green" : "red");
+  document.getElementById("r-pf").innerText = pf.toFixed(2);
+  document.getElementById("r-pf").className = "result-val " + (pf >= 1.5 ? "green" : pf >= 1 ? "gold" : "red");
+  document.getElementById("r-dd").innerText = "-" + maxDD.toFixed(1) + "R";
+  document.getElementById("r-wl").innerText = wins + "W / " + losses + "L";
+  document.getElementById("r-avgr").innerText = avgR.toFixed(2) + "R";
+
+  let verdictEl = document.getElementById("verdict");
+  if (total < 20) {
+    verdictEl.className = "verdict mid";
+    verdictEl.innerHTML = `<b>⚠️ Sample terlalu kecil (${total} trade).</b><br>Hasil ini belum cukup buat disimpulkan apapun. Coba timeframe lebih kecil atau rentang candle lebih panjang biar dapet lebih banyak sample trade.`;
+  } else if (winrate >= 50 && pf >= 1.5) {
+    verdictEl.className = "verdict good";
+    verdictEl.innerHTML = `<b>✅ Hasil historis positif.</b><br>Winrate ${winrate.toFixed(1)}% dengan profit factor ${pf.toFixed(2)} di data ini. Ini indikasi bagus, tapi tetap forward-test pakai demo account dulu sebelum real money — kondisi market berubah dan PAXG ≠ harga broker asli lo.`;
+  } else if (pf >= 1) {
+    verdictEl.className = "verdict mid";
+    verdictEl.innerHTML = `<b>🟡 Hasil marginal.</b><br>Profit factor ${pf.toFixed(2)} artinya cuma sedikit di atas breakeven. Risiko masih tinggi buat real money tanpa penyempurnaan filter lebih lanjut.`;
+  } else {
+    verdictEl.className = "verdict bad";
+    verdictEl.innerHTML = `<b>❌ Hasil historis negatif.</b><br>Profit factor ${pf.toFixed(2)} (di bawah 1) artinya strategi ini rugi secara historis di data ini. Logic perlu dirombak sebelum dipertimbangkan untuk real money.`;
+  }
+
+  drawEquityChart(equityCurve);
+
+  document.getElementById("tradeBody").innerHTML = trades.slice(-100).reverse().map(t => `
+    <tr>
+      <td style="color:var(--dim)">${t.time}</td>
+      <td>${t.sig}</td>
+      <td style="font-family:'Share Tech Mono',monospace">${t.entry}</td>
+      <td style="font-family:'Share Tech Mono',monospace">${t.exit}</td>
+      <td><span class="badge ${t.result.toLowerCase()}">${t.result}</span></td>
+      <td style="font-family:'Share Tech Mono',monospace;color:${t.r>0?'var(--green)':'var(--red)'}">${t.r>0?'+':''}${t.r}R</td>
+    </tr>
+  `).join("");
+}
+
+function drawEquityChart(curve) {
+  let canvas = document.getElementById("equityChart");
+  let ctx = canvas.getContext("2d");
+  let dpr = window.devicePixelRatio || 1;
+  let w = canvas.clientWidth, h = canvas.clientHeight;
+  canvas.width = w*dpr; canvas.height = h*dpr;
+  ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,w,h);
+
+  if (curve.length < 2) return;
+
+  let min = Math.min(...curve), max = Math.max(...curve);
+  let range = (max - min) || 1;
+  let padding = 20;
+
+  let zeroY = h - padding - ((0-min)/range)*(h-padding*2);
+  ctx.strokeStyle = "#1a2f4a";
+  ctx.beginPath(); ctx.moveTo(0,zeroY); ctx.lineTo(w,zeroY); ctx.stroke();
+
+  ctx.strokeStyle = "#d4af37";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  curve.forEach((v,i) => {
+    let x = (i/(curve.length-1)) * w;
+    let y = h - padding - ((v-min)/range)*(h-padding*2);
+    i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+
+  ctx.lineTo(w, h);
+  ctx.lineTo(0, h);
+  ctx.closePath();
+  let grad = ctx.createLinearGradient(0,0,0,h);
+  grad.addColorStop(0, "rgba(212,175,55,.2)");
+  grad.addColorStop(1, "rgba(212,175,55,0)");
+  ctx.fillStyle = grad;
+  ctx.fill();
+}
+
+renderHistory();
+connectWS();
 loadAllCandles();
 startRefresh();
 </script>
